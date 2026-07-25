@@ -15,7 +15,6 @@ export default function Consult() {
   }, []);
 
   useEffect(() => {
-    // Filter patients whenever search term changes
     if (searchTerm.trim() === "") {
       setFilteredPatients(patients);
     } else {
@@ -49,18 +48,14 @@ export default function Consult() {
     }
   };
 
-  // Helper function to format date
   const formatDate = (dateValue) => {
     if (!dateValue) return "N/A";
     
-    // If it's a string, try to parse it
     if (typeof dateValue === 'string') {
-      // If it's already in YYYY-MM-DD format, return as is
       if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return dateValue;
       }
       
-      // Try to parse and format
       const parsedDate = new Date(dateValue);
       if (!isNaN(parsedDate.getTime())) {
         return parsedDate.toISOString().split('T')[0];
@@ -145,6 +140,50 @@ export default function Consult() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Specialist Consultation</h1>
           <p className="text-gray-400">Request expert review for complex cases and second opinions</p>
+        </div>
+
+        {/* Statistics - Now at the top */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <div className="bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-700">
+            <div className="text-3xl font-bold text-white mb-1">{patients.length}</div>
+            <div className="text-gray-400 text-sm">Total Cases</div>
+            <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
+              <div className="bg-green-500 h-1.5 rounded-full" style={{ width: '100%' }}></div>
+            </div>
+          </div>
+          <div className="bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-700">
+            <div className="text-3xl font-bold text-red-400 mb-1">
+              {patients.filter(p => p.priority === 'critical' || p.priority === 'high').length}
+            </div>
+            <div className="text-gray-400 text-sm">Urgent Cases</div>
+            <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
+              <div className="bg-red-500 h-1.5 rounded-full" style={{ 
+                width: `${patients.length > 0 ? (patients.filter(p => p.priority === 'critical' || p.priority === 'high').length / patients.length) * 100 : 0}%` 
+              }}></div>
+            </div>
+          </div>
+          <div className="bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-700">
+            <div className="text-3xl font-bold text-yellow-400 mb-1">
+              {patients.filter(p => p.status === 'pending').length}
+            </div>
+            <div className="text-gray-400 text-sm">Pending Review</div>
+            <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
+              <div className="bg-yellow-400 h-1.5 rounded-full" style={{ 
+                width: `${patients.length > 0 ? (patients.filter(p => p.status === 'pending').length / patients.length) * 100 : 0}%` 
+              }}></div>
+            </div>
+          </div>
+          <div className="bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-700">
+            <div className="text-3xl font-bold text-green-400 mb-1">
+              {patients.filter(p => p.status === 'reviewed').length}
+            </div>
+            <div className="text-gray-400 text-sm">Completed</div>
+            <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
+              <div className="bg-green-400 h-1.5 rounded-full" style={{ 
+                width: `${patients.length > 0 ? (patients.filter(p => p.status === 'reviewed').length / patients.length) * 100 : 0}%` 
+              }}></div>
+            </div>
+          </div>
         </div>
 
         {/* Controls */}
@@ -294,20 +333,6 @@ export default function Consult() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
-          <div className="bg-gray-800 rounded-2xl p-6">
-            <div className="text-2xl font-bold text-white mb-2">{patients.length}</div>
-            <div className="text-gray-400 text-sm">Total Cases</div>
-          </div>
-          <div className="bg-gray-800 rounded-2xl p-6">
-            <div className="text-2xl font-bold text-red-400 mb-2">
-              {patients.filter(p => p.priority === 'critical' || p.priority === 'high').length}
-            </div>
-            <div className="text-gray-400 text-sm">Urgent Cases</div>
-          </div>          
         </div>
       </div>
     </div>
