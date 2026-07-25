@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FileText, User, Scan, AlertCircle, CheckCircle, Download, MessageCircle } from "lucide-react";
+import { FileText, User, Scan, AlertCircle, CheckCircle, Download, MessageCircle, Flame, Image as ImageIcon } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
  
 export default function DiagnosticResults() {
@@ -8,6 +8,7 @@ export default function DiagnosticResults() {
 
   const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeView, setActiveView] = useState("heatmap"); 
 
   useEffect(() => {
     if (location.state?.patientData) {
@@ -40,6 +41,19 @@ export default function DiagnosticResults() {
       </div>
     );
   }
+
+  const originalSrc = patientData.image
+    ? URL.createObjectURL(patientData.image)
+    : patientData.imageUrl || null;
+
+  const hasHeatmap = Boolean(patientData.heatmapUrl);
+  const showingHeatmap = activeView === "heatmap" && hasHeatmap;
+  const activeSrc = showingHeatmap ? patientData.heatmapUrl : originalSrc;
+
+  const hasNotableFindings =
+    patientData.aiFindings &&
+    patientData.aiFindings.some((f) => f.name !== "No Significant Findings");
+
   return (
     <div className="min-h-screen bg-cyan-900">
       {/* Header */}
@@ -75,37 +89,79 @@ export default function DiagnosticResults() {
 
             {/* Scanned Image */}
             <div className="bg-gray-800 rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center mb-4">
-                <Scan className="h-5 w-5 text-green-400 mr-2" />
-                <h2 className="text-lg font-semibold text-white">Scanned Image</h2>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <Scan className="h-5 w-5 text-green-400 mr-2" />
+                  <h2 className="text-lg font-semibold text-white">Scanned Image</h2>
+                </div>
+
+                {hasHeatmap && (
+                  <div className="flex bg-gray-700 rounded-lg p-1 text-xs font-medium">
+                    <button
+                      onClick={() => setActiveView("heatmap")}
+                      className={`flex items-center px-3 py-1.5 rounded-md transition-colors ${
+                        showingHeatmap ? "bg-green-500 text-white" : "text-gray-300 hover:text-white"
+                      }`}
+                    >
+                      <Flame className="h-3.5 w-3.5 mr-1" />
+                      Heatmap
+                    </button>
+                    <button
+                      onClick={() => setActiveView("original")}
+                      className={`flex items-center px-3 py-1.5 rounded-md transition-colors ${
+                        !showingHeatmap ? "bg-green-500 text-white" : "text-gray-300 hover:text-white"
+                      }`}
+                    >
+                      <ImageIcon className="h-3.5 w-3.5 mr-1" />
+                      Original
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-center mb-4">
-                {patientData.image ? (
-                  <img 
-                    src={URL.createObjectURL(patientData.image)} 
-                    alt="Uploaded Scan" 
-                    className="rounded-xl w-full border-2 border-gray-600"
-                  />
-                ) : patientData.imageUrl ? (
+
+              <div className="flex justify-center mb-3">
+                {activeSrc ? (
                   <img
-                    src={patientData.imageUrl}
-                    alt="Uploaded Scan"
+                    src={activeSrc}
+                    alt={showingHeatmap ? "Grad-CAM heatmap overlay" : "Uploaded scan"}
                     className="rounded-xl w-full border-2 border-gray-600"
                   />
                 ) : (
                   <p className="text-gray-400">No image available</p>
                 )}
               </div>
-              {patientData.heatmapUrl && (
-                <div className="mt-4">
-                  <p className="text-gray-400 text-sm mb-2">Grad-CAM Heatmap</p>
-                  <img
-                    src={patientData.heatmapUrl}
-                    alt="AI heatmap"
-                    className="rounded-xl w-full border-2 border-gray-600"
-                  />
+
+              {showingHeatmap && (
+                <div className="mb-4">
+                  {hasNotableFindings ? (
+                    <>
+                      <p className="text-gray-400 text-xs mb-2">
+                        Highlighted regions show where the model's attention concentrated, colored by
+                        confidence.
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-gray-300">
+                        <span className="flex items-center">
+                          <span className="w-3 h-3 rounded-full mr-1.5" style={{ backgroundColor: "#FF3B30" }} />
+                          High (≥70%)
+                        </span>
+                        <span className="flex items-center">
+                          <span className="w-3 h-3 rounded-full mr-1.5" style={{ backgroundColor: "#FF9500" }} />
+                          Medium (40–69%)
+                        </span>
+                        <span className="flex items-center">
+                          <span className="w-3 h-3 rounded-full mr-1.5" style={{ backgroundColor: "#34C759" }} />
+                          Low (&lt;40%)
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-gray-400 text-xs">
+                      No regions of concern were highlighted for this scan.
+                    </p>
+                  )}
                 </div>
               )}
+
               <div className="text-center space-y-2">
                 <p className="text-white font-medium">{patientData.scanType}</p>
                 <p className="text-gray-400 text-sm">Uploaded: {patientData.date}</p>
