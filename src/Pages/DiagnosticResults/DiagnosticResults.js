@@ -30,6 +30,28 @@ export default function DiagnosticResults() {
     }
   }, [location.state, navigate]);
 
+  // Helper function to format date
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "N/A";
+    
+    // If it's a string, try to parse it
+    if (typeof dateValue === 'string') {
+      // If it's already in YYYY-MM-DD format, return as is
+      if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateValue;
+      }
+      
+      // Try to parse and format
+      const parsedDate = new Date(dateValue);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.toISOString().split('T')[0];
+      }
+      
+      return dateValue;
+    }
+    
+    return dateValue;
+  };
 
   if (loading || !patientData) {
     return (
@@ -160,7 +182,7 @@ export default function DiagnosticResults() {
 
               <div className="text-center space-y-2">
                 <p className="text-white font-medium">{patientData.scanType}</p>
-                <p className="text-gray-400 text-sm">Uploaded: {patientData.date}</p>
+                <p className="text-gray-400 text-sm">Uploaded: {formatDate(patientData.date)}</p>
               </div>
             </div>
 
@@ -177,7 +199,7 @@ export default function DiagnosticResults() {
                   Age: patientData.age,
                   Gender: patientData.gender,
                   "Scan Type": patientData.scanType,
-                  "Date Processed": patientData.date
+                  "Date Processed": formatDate(patientData.date)
                 }).map(([key, value]) => (
                   <div key={key} className="flex justify-between border-b border-gray-700 pb-2">
                     <span className="text-gray-400">{key}:</span>

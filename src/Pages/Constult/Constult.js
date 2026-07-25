@@ -6,22 +6,70 @@ import { getPatients, requestRadiologistReview } from "../../api/medvisionApi";
 export default function Consult() {
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchPatients();
   }, []);
 
+  useEffect(() => {
+    // Filter patients whenever search term changes
+    if (searchTerm.trim() === "") {
+      setFilteredPatients(patients);
+    } else {
+      const searchLower = searchTerm.toLowerCase().trim();
+      const filtered = patients.filter(patient => {
+        return (
+          patient.name?.toLowerCase().includes(searchLower) ||
+          patient.patientId?.toLowerCase().includes(searchLower) ||
+          patient.scanType?.toLowerCase().includes(searchLower) ||
+          patient.aiFindings?.some(finding => 
+            finding.name?.toLowerCase().includes(searchLower)
+          ) ||
+          patient.date?.includes(searchTerm) ||
+          patient.priority?.toLowerCase().includes(searchLower)
+        );
+      });
+      setFilteredPatients(filtered);
+    }
+  }, [searchTerm, patients]);
+
   const fetchPatients = async () => {
     try {
       const response = await getPatients();
       const patientsData = Array.isArray(response) ? response : response.patients || [];
       setPatients(patientsData);
+      setFilteredPatients(patientsData);
     } catch (error) {
       console.error("Error fetching patients:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to format date
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "N/A";
+    
+    // If it's a string, try to parse it
+    if (typeof dateValue === 'string') {
+      // If it's already in YYYY-MM-DD format, return as is
+      if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateValue;
+      }
+      
+      // Try to parse and format
+      const parsedDate = new Date(dateValue);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.toISOString().split('T')[0];
+      }
+      
+      return dateValue;
+    }
+    
+    return dateValue;
   };
 
   const getPriorityColor = (priority) => {
@@ -106,8 +154,17 @@ export default function Consult() {
             <input
               type="text"
               placeholder="Search patients, conditions, or IDs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-gray-800 text-white pl-10 pr-4 py-3 rounded-xl border border-gray-600 focus:border-green-400 focus:outline-none"
             />
+            {searchTerm && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <span className="text-gray-400 text-sm">
+                  {filteredPatients.length} results
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex gap-3">
             <button className="bg-gray-800 text-white px-4 py-3 rounded-xl border border-gray-600 hover:border-green-400 transition-colors flex items-center">
@@ -134,101 +191,108 @@ export default function Consult() {
 
           {/* Patient Rows */}
           <div className="divide-y divide-gray-700">
-            {patients.map((patient) => (
-              <div key={patient.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-750 transition-colors items-center">
+            {filteredPatients.length > 0 ? (
+              filteredPatients.map((patient) => (
+                <div key={patient.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-750 transition-colors items-center">
 
-                {/* Scan Thumbnail (heatmap if available, falls back to original) */}
-                <div className="col-span-1">
-                  <button
-                    onClick={() => openPatient(patient)}
-                    className="block w-14 h-14 rounded-lg overflow-hidden border border-gray-600 hover:border-green-400 transition-colors"
-                    title="View full analysis"
-                  >
-                    {patient.heatmapUrl || patient.imageUrl ? (
-                      <img
-                        src={patient.heatmapUrl || patient.imageUrl}
-                        alt={`${patient.name || "Patient"} scan`}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                        <Scan className="h-5 w-5 text-gray-500" />
-                      </div>
-                    )}
-                  </button>
-                </div>
-
-                {/* Patient Information */}
-                <div className="col-span-2">
-                  <div className="flex items-center">
-                    <div className={`w-3 h-3 rounded-full mr-3 ${getStatusColor(patient.status || 'pending')}`}></div>
-                    <div>
-                      <p className="text-white font-semibold">{patient.name}</p>
-                      <p className="text-gray-400 text-sm">ID: {patient.patientId}</p>
-                      <p className="text-gray-400 text-sm">{patient.age} yrs • {patient.gender}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Scan Details */}
-                <div className="col-span-2">
-                  <div className="flex items-center text-sm">
-                    <Scan className="h-4 w-4 text-blue-400 mr-2" />
-                    <div>
-                      <p className="text-white">{patient.scanType}</p>
-                      <p className="text-gray-400">{patient.date}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* AI Findings */}
-                <div className="col-span-2">
-                  <div className="bg-gray-700 rounded-lg px-3 py-2">
-                    <p className="text-white font-medium text-sm">
-                      {patient.aiFindings?.[0]?.name || "No findings"}
-                    </p>
-                    <p className="text-green-400 text-xs">
-                      Confidence: {patient.aiFindings?.[0]?.probability || "0"}%
-                    </p>
-                    {patient.aiFindings?.length > 1 && (
-                      <p className="text-gray-400 text-xs mt-0.5">
-                        +{patient.aiFindings.length - 1} more
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Priority */}
-                <div className="col-span-2">
-                  <div className={`inline-flex items-center px-3 py-1 rounded-full border ${getPriorityColor(patient.priority || 'medium')}`}>
-                    <div className={`w-2 h-2 rounded-full mr-2 ${getPriorityColor(patient.priority || 'medium').split(' ')[0]}`}></div>
-                    <span className="text-sm font-medium capitalize">{patient.priority || 'medium'}</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="col-span-3">
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={() => handleSendToRadiologist(patient.id)}
-                      className="flex-1 bg-blue-500 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center"
-                    >
-                      <Send className="h-4 w-4 mr-1" />
-                      Send to Radiologist
-                    </button>
-                    <button 
+                  {/* Scan Thumbnail (heatmap if available, falls back to original) */}
+                  <div className="col-span-1">
+                    <button
                       onClick={() => openPatient(patient)}
-                      className="flex-1 bg-gray-600 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors"
+                      className="block w-14 h-14 rounded-lg overflow-hidden border border-gray-600 hover:border-green-400 transition-colors"
+                      title="View full analysis"
                     >
-                      View
-                    </button>
-                    <button className="bg-gray-600 text-white p-2 rounded-lg hover:bg-gray-700 transition-colors">
-                      <MessageCircle className="h-4 w-4" />
+                      {patient.heatmapUrl || patient.imageUrl ? (
+                        <img
+                          src={patient.heatmapUrl || patient.imageUrl}
+                          alt={`${patient.name || "Patient"} scan`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                          <Scan className="h-5 w-5 text-gray-500" />
+                        </div>
+                      )}
                     </button>
                   </div>
+
+                  {/* Patient Information */}
+                  <div className="col-span-2">
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full mr-3 ${getStatusColor(patient.status || 'pending')}`}></div>
+                      <div>
+                        <p className="text-white font-semibold">{patient.name}</p>
+                        <p className="text-gray-400 text-sm">ID: {patient.patientId}</p>
+                        <p className="text-gray-400 text-sm">{patient.age} yrs • {patient.gender}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Scan Details */}
+                  <div className="col-span-2">
+                    <div className="flex items-center text-sm">
+                      <Scan className="h-4 w-4 text-blue-400 mr-2" />
+                      <div>
+                        <p className="text-white">{patient.scanType}</p>
+                        <p className="text-gray-400">{formatDate(patient.date)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Findings */}
+                  <div className="col-span-2">
+                    <div className="bg-gray-700 rounded-lg px-3 py-2">
+                      <p className="text-white font-medium text-sm">
+                        {patient.aiFindings?.[0]?.name || "No findings"}
+                      </p>
+                      <p className="text-green-400 text-xs">
+                        Confidence: {patient.aiFindings?.[0]?.probability || "0"}%
+                      </p>
+                      {patient.aiFindings?.length > 1 && (
+                        <p className="text-gray-400 text-xs mt-0.5">
+                          +{patient.aiFindings.length - 1} more
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Priority */}
+                  <div className="col-span-2">
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full border ${getPriorityColor(patient.priority || 'medium')}`}>
+                      <div className={`w-2 h-2 rounded-full mr-2 ${getPriorityColor(patient.priority || 'medium').split(' ')[0]}`}></div>
+                      <span className="text-sm font-medium capitalize">{patient.priority || 'medium'}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="col-span-3">
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => handleSendToRadiologist(patient.id)}
+                        className="flex-1 bg-blue-500 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center"
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        Send to Radiologist
+                      </button>
+                      <button 
+                        onClick={() => openPatient(patient)}
+                        className="flex-1 bg-gray-600 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors"
+                      >
+                        View
+                      </button>
+                      <button className="bg-gray-600 text-white p-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        <MessageCircle className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="px-6 py-12 text-center text-gray-400">
+                <p className="text-lg">No patients found matching your search</p>
+                <p className="text-sm mt-2">Try adjusting your search terms</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -243,19 +307,7 @@ export default function Consult() {
               {patients.filter(p => p.priority === 'critical' || p.priority === 'high').length}
             </div>
             <div className="text-gray-400 text-sm">Urgent Cases</div>
-          </div>
-          <div className="bg-gray-800 rounded-2xl p-6">
-            <div className="text-2xl font-bold text-yellow-400 mb-2">
-              {patients.filter(p => p.status === 'pending').length}
-            </div>
-            <div className="text-gray-400 text-sm">Pending Review</div>
-          </div>
-          <div className="bg-gray-800 rounded-2xl p-6">
-            <div className="text-2xl font-bold text-green-400 mb-2">
-              {patients.filter(p => p.status === 'reviewed').length}
-            </div>
-            <div className="text-gray-400 text-sm">Completed</div>
-          </div>
+          </div>          
         </div>
       </div>
     </div>

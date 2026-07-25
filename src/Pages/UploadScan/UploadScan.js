@@ -18,10 +18,24 @@ export default function UploadScan() {
     scanType: "Chest X-ray"
   });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false)
+  const generatePatientId = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateStr = `${year}${month}${day}`;
+    
+    const timestamp = Date.now().toString().slice(-6);
+    const sequential = String(Math.floor(Math.random() * 999999) + 1).padStart(6, '0');
+    
+    return `${dateStr}-PAT-${sequential}`;
+  };
 
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleImage = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -36,19 +50,25 @@ export default function UploadScan() {
       alert("Please upload an image first!");
       return;
     }
+
+    // Auto-generate PatientID before submitting
+    const generatedPatientId = generatePatientId();
+    const updatedFormData = { ...formData, patientId: generatedPatientId };
+    setFormData(updatedFormData);
+    
     setLoading(true);
 
     try {
       const analysis = await analyzeCxr({
-        image: formData.image,
-        name: formData.name,
-        patientId: formData.patientId,
-        age: formData.age,
-        gender: formData.gender,
-        date: formData.date,
-        scanType: formData.scanType,
-        clinicalSymptoms: formData.clinicalSymptoms,
-        clinicalHistory: formData.clinicalHistory
+        image: updatedFormData.image,
+        name: updatedFormData.name,
+        patientId: generatedPatientId,
+        age: updatedFormData.age,
+        gender: updatedFormData.gender,
+        date: updatedFormData.date,
+        scanType: updatedFormData.scanType,
+        clinicalSymptoms: updatedFormData.clinicalSymptoms,
+        clinicalHistory: updatedFormData.clinicalHistory
       });
 
       const aiData = Array.isArray(analysis.aiFindings)
@@ -57,7 +77,7 @@ export default function UploadScan() {
           ? analysis.findings
           : [];
 
-      const patientId = analysis.patient?.id || analysis.id || formData.patientId;
+      const patientId = analysis.patient?.id || analysis.id || generatedPatientId;
 
       setLoading(false);
 
@@ -65,7 +85,7 @@ export default function UploadScan() {
         state: { 
           aiData: aiData, 
           heatmapUrl: analysis.heatmapUrl,
-          formData: { ...formData, id: patientId} 
+          formData: { ...updatedFormData, id: patientId } 
         } 
       });
 
