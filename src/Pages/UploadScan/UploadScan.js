@@ -175,7 +175,7 @@ export default function UploadScan() {
                 <input
                   name="name"
                   placeholder="Enter full name"
-                  className="w-full bg-white border border-gray-300 p-3 rounded-xl focus:border-green-400 focus:outline-none"
+                  className="w-full text-black bg-white border border-gray-300 p-3 rounded-xl focus:border-green-400 focus:outline-none"
                   value={formData.name}
                   onChange={handleChange}
                   required

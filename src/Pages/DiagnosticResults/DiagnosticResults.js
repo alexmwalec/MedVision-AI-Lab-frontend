@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FileText, User, Scan, AlertCircle, CheckCircle, Download, MessageCircle, Flame, Image as ImageIcon } from "lucide-react";
+import { FileText, User, Scan, AlertCircle, CheckCircle,  Flame, Image as ImageIcon } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
  
 export default function DiagnosticResults() {
@@ -30,9 +30,6 @@ export default function DiagnosticResults() {
     }
   }, [location.state, navigate]);
 
-  const handleSpecialistConsult = async () => {
-    navigate("/consult");
-  };
 
   if (loading || !patientData) {
     return (
@@ -136,22 +133,21 @@ export default function DiagnosticResults() {
                   {hasNotableFindings ? (
                     <>
                       <p className="text-gray-400 text-xs mb-2">
-                        Highlighted regions show where the model's attention concentrated, colored by
-                        confidence.
+                        Each color marks a distinct detected condition; box intensity reflects the
+                        model's confidence.
                       </p>
-                      <div className="flex items-center gap-4 text-xs text-gray-300">
-                        <span className="flex items-center">
-                          <span className="w-3 h-3 rounded-full mr-1.5" style={{ backgroundColor: "#FF3B30" }} />
-                          High (≥70%)
-                        </span>
-                        <span className="flex items-center">
-                          <span className="w-3 h-3 rounded-full mr-1.5" style={{ backgroundColor: "#FF9500" }} />
-                          Medium (40–69%)
-                        </span>
-                        <span className="flex items-center">
-                          <span className="w-3 h-3 rounded-full mr-1.5" style={{ backgroundColor: "#34C759" }} />
-                          Low (&lt;40%)
-                        </span>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-300">
+                        {patientData.aiFindings
+                          .filter((f) => f.name !== "No Significant Findings")
+                          .map((f, i) => (
+                            <span key={i} className="flex items-center">
+                              <span
+                                className="w-3 h-3 rounded-full mr-1.5"
+                                style={{ backgroundColor: f.color || "#6B7280" }}
+                              />
+                              {f.name} ({f.probability}%)
+                            </span>
+                          ))}
                       </div>
                     </>
                   ) : (
@@ -246,24 +242,6 @@ export default function DiagnosticResults() {
                 <p className="text-gray-400">No recommendations available yet.</p>
               )}
             </div>
-
-            {/* Actions */}
-            <div className="flex space-x-4">
-              <button className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition-colors duration-200 flex items-center justify-center">
-                <Download className="h-5 w-5 mr-2" />
-                Download Report
-              </button>
-
-              {/* Specialist Consult */}
-              <button 
-                onClick={handleSpecialistConsult}
-                className="flex-1 bg-blue-500 text-white py-3 rounded-xl font-semibold hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center"
-              >
-                <MessageCircle className="h-5 w-5 mr-2" />
-                Specialist Consult
-              </button>
-            </div>
-
           </div>
         </div>
       </div>

@@ -55,6 +55,10 @@ export default function Consult() {
     }
   };
 
+  const openPatient = (patient) => {
+    navigate("/results", { state: { patientData: patient } });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -120,7 +124,8 @@ export default function Consult() {
         <div className="bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-750 border-b border-gray-700 text-gray-400 font-semibold text-sm">
-            <div className="col-span-3">Patient Information</div>
+            <div className="col-span-1">Scan</div>
+            <div className="col-span-2">Patient Information</div>
             <div className="col-span-2">Scan Details</div>
             <div className="col-span-2">AI Findings</div>
             <div className="col-span-2">Priority</div>
@@ -130,9 +135,31 @@ export default function Consult() {
           {/* Patient Rows */}
           <div className="divide-y divide-gray-700">
             {patients.map((patient) => (
-              <div key={patient.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-750 transition-colors">
+              <div key={patient.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-750 transition-colors items-center">
+
+                {/* Scan Thumbnail (heatmap if available, falls back to original) */}
+                <div className="col-span-1">
+                  <button
+                    onClick={() => openPatient(patient)}
+                    className="block w-14 h-14 rounded-lg overflow-hidden border border-gray-600 hover:border-green-400 transition-colors"
+                    title="View full analysis"
+                  >
+                    {patient.heatmapUrl || patient.imageUrl ? (
+                      <img
+                        src={patient.heatmapUrl || patient.imageUrl}
+                        alt={`${patient.name || "Patient"} scan`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                        <Scan className="h-5 w-5 text-gray-500" />
+                      </div>
+                    )}
+                  </button>
+                </div>
+
                 {/* Patient Information */}
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <div className="flex items-center">
                     <div className={`w-3 h-3 rounded-full mr-3 ${getStatusColor(patient.status || 'pending')}`}></div>
                     <div>
@@ -163,6 +190,11 @@ export default function Consult() {
                     <p className="text-green-400 text-xs">
                       Confidence: {patient.aiFindings?.[0]?.probability || "0"}%
                     </p>
+                    {patient.aiFindings?.length > 1 && (
+                      <p className="text-gray-400 text-xs mt-0.5">
+                        +{patient.aiFindings.length - 1} more
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -185,7 +217,7 @@ export default function Consult() {
                       Send to Radiologist
                     </button>
                     <button 
-                      onClick={() => navigate("/results", { state: { patientData: patient } })}
+                      onClick={() => openPatient(patient)}
                       className="flex-1 bg-gray-600 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors"
                     >
                       View
