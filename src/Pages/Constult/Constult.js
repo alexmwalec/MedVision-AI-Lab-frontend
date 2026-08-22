@@ -99,7 +99,7 @@ export default function Consult() {
   };
 
   const openPatient = (patient) => {
-    navigate("/results", { state: { patientData: patient } });
+    navigate(`/results/${patient.id}`, { state: { patientData: patient } });
   };
 
   if (loading) {
@@ -257,10 +257,12 @@ export default function Consult() {
                   <div className="col-span-2">
                     <div className="bg-gray-700 rounded-lg px-3 py-2">
                       <p className="text-white font-medium text-sm">
-                        {patient.aiFindings?.[0]?.name || "No findings"}
+                        {patient.aiFindings?.[0]?.name || "No significant findings"}
                       </p>
                       <p className="text-green-400 text-xs">
-                        Confidence: {patient.aiFindings?.[0]?.probability || "0"}%
+                        {patient.aiFindings?.[0]
+                          ? `Confidence: ${patient.aiFindings[0].probability}%`
+                          : "No detected condition"}
                       </p>
                       {patient.aiFindings?.length > 1 && (
                         <p className="text-gray-400 text-xs mt-0.5">

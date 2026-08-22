@@ -99,11 +99,11 @@ export default function UploadScan() {
 
       setLoading(false);
 
-      navigate("/results", { 
+      navigate(`/results/${patientId}`, { 
         state: { 
           aiData: aiData, 
           heatmapUrl: analysis.heatmapUrl,
-          formData: { ...updatedFormData, id: patientId, date: apiDate }
+          formData: { ...updatedFormData, id: patientId, imageUrl: analysis.imageUrl, date: apiDate }
         } 
       });
 

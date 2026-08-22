@@ -1,16 +1,34 @@
 import { useEffect, useState } from "react";
 import { User, Scan, AlertCircle, CheckCircle, Flame, Image as ImageIcon } from "lucide-react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation, useParams, Link } from "react-router-dom";
+import { getPatient } from "../../api/medvisionApi";
  
 export default function DiagnosticResults() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { patientId } = useParams();
 
   const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState("heatmap"); 
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadPatient = async () => {
+      if (patientId) {
+        try {
+          const patient = await getPatient(patientId);
+          if (!cancelled) setPatientData(patient);
+        } catch (error) {
+          console.error("Unable to load saved patient:", error);
+          if (!cancelled) setPatientData(location.state?.patientData || null);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+        return;
+      }
+
     if (location.state?.patientData) {
       setPatientData(location.state.patientData);
       setLoading(false);
@@ -28,7 +46,13 @@ export default function DiagnosticResults() {
     } else {
       navigate("/");
     }
-  }, [location.state, navigate]);
+    };
+
+    loadPatient();
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, location.state, navigate]);
 
   const formatDate = (dateValue) => {
     if (!dateValue) return "N/A";

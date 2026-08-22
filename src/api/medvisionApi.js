@@ -1,4 +1,5 @@
 const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api").replace(/\/$/, "");
+const API_ORIGIN = API_BASE_URL.replace(/\/api$/, "");
 
 const parseJson = async (response) => {
   const text = await response.text();
@@ -46,7 +47,7 @@ const apiUrl = (value) => {
     return value;
   }
 
-  return `${API_BASE_URL}${value.startsWith("/") ? value : `/${value}`}`;
+  return `${API_ORIGIN}${value.startsWith("/") ? value : `/${value}`}`;
 };
 
 const normalizePatient = (patient) => ({
@@ -96,7 +97,7 @@ export const analyzeCxr = async (payload) => {
       scanType: payload.scanType,
       date: payload.date
     },
-    aiFindings: (analysis.aiFindings || analysis.findings || []).map(normalizeFinding)
+    aiFindings: (analysis.patient?.aiFindings || analysis.aiFindings || analysis.findings || []).map(normalizeFinding)
   });
 };
 
@@ -107,6 +108,16 @@ export const getPatients = async () => {
   return {
     ...response,
     patients: patients.map(normalizePatient)
+  };
+};
+
+export const getPatient = async (patientId) => {
+  const response = await request(`/patients/${patientId}`);
+  const patient = response.patient || response;
+
+  return {
+    ...normalizePatient(patient),
+    aiFindings: (patient.aiFindings || []).map(normalizeFinding)
   };
 };
 

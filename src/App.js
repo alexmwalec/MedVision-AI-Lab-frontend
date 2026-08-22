@@ -12,6 +12,7 @@ function App(){
         <Routes>
         <Route path="/" element={<UploadScan/>}/>
         <Route path="/results" element={<DiagnosticResults/>}/>
+        <Route path="/results/:patientId" element={<DiagnosticResults/>}/>
         <Route path="/consult" element={<Constult/>}/>
         <Route path="/radiologistconsult" element={<RadiologistConsultation/>}/>
 
