@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FileText, User, Scan, AlertCircle, CheckCircle,  Flame, Image as ImageIcon } from "lucide-react";
+import { User, Scan, AlertCircle, CheckCircle, Flame, Image as ImageIcon } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
  
 export default function DiagnosticResults() {
@@ -30,18 +30,14 @@ export default function DiagnosticResults() {
     }
   }, [location.state, navigate]);
 
-  // Helper function to format date
   const formatDate = (dateValue) => {
     if (!dateValue) return "N/A";
     
-    // If it's a string, try to parse it
     if (typeof dateValue === 'string') {
-      // If it's already in YYYY-MM-DD format, return as is
       if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return dateValue;
       }
       
-      // Try to parse and format
       const parsedDate = new Date(dateValue);
       if (!isNaN(parsedDate.getTime())) {
         return parsedDate.toISOString().split('T')[0];
@@ -80,10 +76,7 @@ export default function DiagnosticResults() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <div className="bg-green-500 p-2 rounded-lg mr-3">
-                <FileText className="h-6 w-6 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-white">MedVision AI Lab</h1>
+              <h1 className="text-xl font-bold text-white">MedVision AI</h1>
             </div>
             <nav className="flex space-x-8">
               <Link to="/" className="text-gray-300 hover:text-white font-medium px-3 py-2">
@@ -93,7 +86,7 @@ export default function DiagnosticResults() {
                 Diagnostic Analysis
               </button>
               <Link to="/consult" className="text-gray-300 hover:text-white font-medium px-3 py-2">
-                Consult
+                History
               </Link>
             </nav>
           </div>

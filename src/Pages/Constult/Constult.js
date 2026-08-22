@@ -117,7 +117,7 @@ export default function Consult() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-white">MedVision AI Lab</h1>
+              <h1 className="text-xl font-bold text-white">MedVision AI</h1>
             </div>
 
             <nav className="flex space-x-8">
@@ -128,7 +128,7 @@ export default function Consult() {
                 Diagnostic Analysis
               </Link>
               <button className="text-green-400 font-semibold border-b-2 border-green-400 px-3 py-2">
-                Consult
+                History
               </button>
             </nav>
           </div>
@@ -162,28 +162,6 @@ export default function Consult() {
               }}></div>
             </div>
           </div>
-          <div className="bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-700">
-            <div className="text-3xl font-bold text-yellow-400 mb-1">
-              {patients.filter(p => p.status === 'pending').length}
-            </div>
-            <div className="text-gray-400 text-sm">Pending Review</div>
-            <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
-              <div className="bg-yellow-400 h-1.5 rounded-full" style={{ 
-                width: `${patients.length > 0 ? (patients.filter(p => p.status === 'pending').length / patients.length) * 100 : 0}%` 
-              }}></div>
-            </div>
-          </div>
-          <div className="bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-700">
-            <div className="text-3xl font-bold text-green-400 mb-1">
-              {patients.filter(p => p.status === 'reviewed').length}
-            </div>
-            <div className="text-gray-400 text-sm">Completed</div>
-            <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
-              <div className="bg-green-400 h-1.5 rounded-full" style={{ 
-                width: `${patients.length > 0 ? (patients.filter(p => p.status === 'reviewed').length / patients.length) * 100 : 0}%` 
-              }}></div>
-            </div>
-          </div>
         </div>
 
         {/* Controls */}
@@ -196,7 +174,7 @@ export default function Consult() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-gray-800 text-white pl-10 pr-4 py-3 rounded-xl border border-gray-600 focus:border-green-400 focus:outline-none"
-            />
+            />=
             {searchTerm && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <span className="text-gray-400 text-sm">
@@ -209,9 +187,6 @@ export default function Consult() {
             <button className="bg-gray-800 text-white px-4 py-3 rounded-xl border border-gray-600 hover:border-green-400 transition-colors flex items-center">
               <Filter className="h-5 w-5 mr-2" />
               Filter
-            </button>
-            <button className="bg-green-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-600 transition-colors">
-              New Consultation
             </button>
           </div>
         </div>

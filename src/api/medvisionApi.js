@@ -1,12 +1,25 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api";
+const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api").replace(/\/$/, "");
 
 const parseJson = async (response) => {
   const text = await response.text();
-  return text ? JSON.parse(text) : {};
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text };
+  }
 };
 
 const request = async (path, options = {}) => {
-  const response = await fetch(`${API_BASE_URL}${path}`, options);
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, options);
+  } catch {
+    throw new Error(`Unable to reach the API at ${API_BASE_URL}. Ensure the backend is running and allows this frontend origin.`);
+  }
+
   const data = await parseJson(response);
 
   if (!response.ok) {
@@ -14,6 +27,18 @@ const request = async (path, options = {}) => {
   }
 
   return data;
+};
+
+const normalizeFinding = (finding) => {
+  const score = finding.probability ?? finding.score ?? 0;
+  const probability = score <= 1 ? Math.round(score * 10000) / 100 : score;
+
+  return {
+    ...finding,
+    name: finding.name || finding.disease || "Unknown",
+    probability,
+    recommendations: finding.recommendations || []
+  };
 };
 
 const apiUrl = (value) => {
@@ -39,18 +64,40 @@ const normalizeAnalysis = (analysis) => ({
 export const analyzeCxr = async (payload) => {
   const body = new FormData();
 
-  Object.entries(payload).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      body.append(key, value);
-    }
-  });
+  // The inference route expects these names (rather than the legacy
+  // /analyze_cxr fields). Keep the page model independent from that API.
+  body.append("xray", payload.image);
+  body.append("externalPatientId", payload.patientId);
+  body.append("patientName", payload.name);
+  body.append("age", payload.age);
+  body.append("gender", payload.gender);
+  body.append("scanDate", payload.date);
+  body.append("scanType", payload.scanType);
+  body.append("clinicalSymptoms", payload.clinicalSymptoms || "");
+  body.append("clinicalHistory", payload.clinicalHistory || "");
 
-  const analysis = await request("/analyze_cxr", {
+  const analysis = await request("/predict", {
     method: "POST",
     body
   });
 
-  return normalizeAnalysis(analysis);
+  return normalizeAnalysis({
+    ...analysis,
+    // The current inference response returns a server filesystem path for
+    // heatmapPath, which is not safe or reachable from a browser. Only use a
+    // URL explicitly exposed by the backend.
+    heatmapUrl: analysis.heatmapUrl,
+    patient: analysis.patient || {
+      id: analysis.patientId,
+      patientId: payload.patientId,
+      name: payload.name,
+      age: payload.age,
+      gender: payload.gender,
+      scanType: payload.scanType,
+      date: payload.date
+    },
+    aiFindings: (analysis.aiFindings || analysis.findings || []).map(normalizeFinding)
+  });
 };
 
 export const getPatients = async () => {
