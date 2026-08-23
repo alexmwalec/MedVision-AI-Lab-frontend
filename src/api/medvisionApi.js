@@ -42,6 +42,30 @@ const normalizeFinding = (finding) => {
   };
 };
 
+const processFindings = (findings) => {
+  if (!findings || !Array.isArray(findings)) return [];
+  
+  const normalized = findings.map(normalizeFinding);
+  
+  // Filter for high confidence (>= 70%)
+  const highConfidence = normalized.filter(f => f.probability >= 70);
+  
+  // Sort by probability descending
+  highConfidence.sort((a, b) => b.probability - a.probability);
+
+  if (highConfidence.length === 0) {
+    return [{
+      name: "No Significant Findings",
+      probability: 100,
+      description: "The AI analysis did not detect any abnormalities with high confidence (>= 70%).",
+      recommendations: ["No immediate action required based on this scan.", "Follow up with a healthcare provider if symptoms persist."],
+      color: "#10B981" // Green
+    }];
+  }
+  
+  return highConfidence;
+};
+
 const apiUrl = (value) => {
   if (!value || /^https?:\/\//i.test(value)) {
     return value;
@@ -53,7 +77,8 @@ const apiUrl = (value) => {
 const normalizePatient = (patient) => ({
   ...patient,
   imageUrl: apiUrl(patient.imageUrl),
-  heatmapUrl: apiUrl(patient.heatmapUrl)
+  heatmapUrl: apiUrl(patient.heatmapUrl),
+  aiFindings: processFindings(patient.aiFindings)
 });
 
 const normalizeAnalysis = (analysis) => ({
@@ -82,22 +107,25 @@ export const analyzeCxr = async (payload) => {
     body
   });
 
+  const aiFindings = processFindings(analysis.patient?.aiFindings || analysis.aiFindings || analysis.findings || []);
+
   return normalizeAnalysis({
     ...analysis,
     // The current inference response returns a server filesystem path for
     // heatmapPath, which is not safe or reachable from a browser. Only use a
     // URL explicitly exposed by the backend.
     heatmapUrl: analysis.heatmapUrl,
-    patient: analysis.patient || {
+    patient: analysis.patient ? normalizePatient(analysis.patient) : {
       id: analysis.patientId,
       patientId: payload.patientId,
       name: payload.name,
       age: payload.age,
       gender: payload.gender,
       scanType: payload.scanType,
-      date: payload.date
+      date: payload.date,
+      aiFindings: aiFindings
     },
-    aiFindings: (analysis.patient?.aiFindings || analysis.aiFindings || analysis.findings || []).map(normalizeFinding)
+    aiFindings: aiFindings
   });
 };
 
@@ -115,10 +143,7 @@ export const getPatient = async (patientId) => {
   const response = await request(`/patients/${patientId}`);
   const patient = response.patient || response;
 
-  return {
-    ...normalizePatient(patient),
-    aiFindings: (patient.aiFindings || []).map(normalizeFinding)
-  };
+  return normalizePatient(patient);
 };
 
 export const requestRadiologistReview = (patientId) =>

@@ -1,5 +1,5 @@
 import { Scan, MessageCircle, Search, Filter, Send } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom"; 
+import { useNavigate, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getPatients, requestRadiologistReview } from "../../api/medvisionApi";
 
@@ -24,7 +24,7 @@ export default function Consult() {
           patient.name?.toLowerCase().includes(searchLower) ||
           patient.patientId?.toLowerCase().includes(searchLower) ||
           patient.scanType?.toLowerCase().includes(searchLower) ||
-          patient.aiFindings?.some(finding => 
+          patient.aiFindings?.some(finding =>
             finding.name?.toLowerCase().includes(searchLower)
           ) ||
           patient.date?.includes(searchTerm) ||
@@ -50,20 +50,20 @@ export default function Consult() {
 
   const formatDate = (dateValue) => {
     if (!dateValue) return "N/A";
-    
+
     if (typeof dateValue === 'string') {
       if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return dateValue;
       }
-      
+
       const parsedDate = new Date(dateValue);
       if (!isNaN(parsedDate.getTime())) {
         return parsedDate.toISOString().split('T')[0];
       }
-      
+
       return dateValue;
     }
-    
+
     return dateValue;
   };
 
@@ -89,7 +89,7 @@ export default function Consult() {
   const handleSendToRadiologist = async (patientId) => {
     try {
       await requestRadiologistReview(patientId);
-      
+
       alert("Case sent to radiologist successfully!");
       fetchPatients();
     } catch (error) {
@@ -157,8 +157,8 @@ export default function Consult() {
             </div>
             <div className="text-gray-400 text-sm">Urgent Cases</div>
             <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
-              <div className="bg-red-500 h-1.5 rounded-full" style={{ 
-                width: `${patients.length > 0 ? (patients.filter(p => p.priority === 'critical' || p.priority === 'high').length / patients.length) * 100 : 0}%` 
+              <div className="bg-red-500 h-1.5 rounded-full" style={{
+                width: `${patients.length > 0 ? (patients.filter(p => p.priority === 'critical' || p.priority === 'high').length / patients.length) * 100 : 0}%`
               }}></div>
             </div>
           </div>
@@ -174,7 +174,7 @@ export default function Consult() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-gray-800 text-white pl-10 pr-4 py-3 rounded-xl border border-gray-600 focus:border-green-400 focus:outline-none"
-            />=
+            />
             {searchTerm && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <span className="text-gray-400 text-sm">
@@ -209,8 +209,7 @@ export default function Consult() {
               filteredPatients.map((patient) => (
                 <div key={patient.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-750 transition-colors items-center">
 
-                  {/* Scan Thumbnail (heatmap if available, falls back to original) */}
-                  <div className="col-span-1">
+                 <div className="col-span-1">
                     <button
                       onClick={() => openPatient(patient)}
                       className="block w-14 h-14 rounded-lg overflow-hidden border border-gray-600 hover:border-green-400 transition-colors"
@@ -283,14 +282,14 @@ export default function Consult() {
                   {/* Actions */}
                   <div className="col-span-3">
                     <div className="flex space-x-2">
-                      <button 
+                      <button
                         onClick={() => handleSendToRadiologist(patient.id)}
                         className="flex-1 bg-blue-500 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center"
                       >
                         <Send className="h-4 w-4 mr-1" />
                         Send to Radiologist
                       </button>
-                      <button 
+                      <button
                         onClick={() => openPatient(patient)}
                         className="flex-1 bg-gray-600 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors"
                       >
