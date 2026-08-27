@@ -92,7 +92,7 @@ export const analyzeCxr = async (payload) => {
 
   // The inference route expects these names (rather than the legacy
   // /analyze_cxr fields). Keep the page model independent from that API.
-  body.append("xray", payload.image);
+  body.append("file", payload.image);
   body.append("externalPatientId", payload.patientId);
   body.append("patientName", payload.name);
   body.append("age", payload.age);
