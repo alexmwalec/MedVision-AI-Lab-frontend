@@ -304,8 +304,7 @@ export default function Consult() {
               ))
             ) : (
               <div className="px-6 py-12 text-center text-gray-400">
-                <p className="text-lg">No patients found matching your search</p>
-                <p className="text-sm mt-2">Try adjusting your search terms</p>
+                <p className="text-lg">No patients found recorded</p>
               </div>
             )}
           </div>

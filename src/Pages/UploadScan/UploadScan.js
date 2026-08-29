@@ -168,7 +168,7 @@ export default function UploadScan() {
                 onChange={handleImage}
                 className="hidden"
                 id="imageUpload"
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.dcm,.dicom,image/jpeg,image/png,application/dicom,application/octet-stream"
               />
               <div
                 onClick={() => document.getElementById("imageUpload").click()}
