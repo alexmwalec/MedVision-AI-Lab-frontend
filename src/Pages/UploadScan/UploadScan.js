@@ -6,12 +6,30 @@ import { analyzeCxr } from "../../api/medvisionApi";
 export default function UploadScan() {
   const navigate = useNavigate();
 
+  const getTodayDate = () => {
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  // Format date from DD-MM-YYYY to YYYY-MM-DD for API
+  const formatDateForApi = (dateStr) => {
+    if (!dateStr) return dateStr;
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateStr;
+  };
+
   const [formData, setFormData] = useState({
     name: "",
     patientId: "",
     gender: "Female", 
     age: "",
-    date: "",
+    date: getTodayDate(), // Auto-set to today's date in DD-MM-YYYY
     clinicalSymptoms: "",
     clinicalHistory: "",
     image: null,
@@ -20,8 +38,22 @@ export default function UploadScan() {
 
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const generatePatientId = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateStr = `${year}${month}${day}`;
+    
+    const sequential = String(Math.floor(Math.random() * 999999) + 1).padStart(6, '0');
+    
+    return `${dateStr}-PAT-${sequential}`;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleImage = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -36,19 +68,25 @@ export default function UploadScan() {
       alert("Please upload an image first!");
       return;
     }
+
+    const generatedPatientId = generatePatientId();
+    const apiDate = formatDateForApi(formData.date);
+    const updatedFormData = { ...formData, patientId: generatedPatientId, date: apiDate };
+    setFormData(updatedFormData);
+    
     setLoading(true);
 
     try {
       const analysis = await analyzeCxr({
-        image: formData.image,
-        name: formData.name,
-        patientId: formData.patientId,
-        age: formData.age,
-        gender: formData.gender,
-        date: formData.date,
-        scanType: formData.scanType,
-        clinicalSymptoms: formData.clinicalSymptoms,
-        clinicalHistory: formData.clinicalHistory
+        image: updatedFormData.image,
+        name: updatedFormData.name,
+        patientId: generatedPatientId,
+        age: updatedFormData.age,
+        gender: updatedFormData.gender,
+        date: apiDate,
+        scanType: updatedFormData.scanType,
+        clinicalSymptoms: updatedFormData.clinicalSymptoms,
+        clinicalHistory: updatedFormData.clinicalHistory
       });
 
       const aiData = Array.isArray(analysis.aiFindings)
@@ -57,22 +95,22 @@ export default function UploadScan() {
           ? analysis.findings
           : [];
 
-      const patientId = analysis.patient?.id || analysis.id || formData.patientId;
+      const patientId = analysis.patient?.id || analysis.id || generatedPatientId;
 
       setLoading(false);
 
-      navigate("/results", { 
+      navigate(`/results/${patientId}`, { 
         state: { 
           aiData: aiData, 
           heatmapUrl: analysis.heatmapUrl,
-          formData: { ...formData, id: patientId} 
+          formData: { ...updatedFormData, id: patientId, imageUrl: analysis.imageUrl, date: apiDate }
         } 
       });
 
     } catch (err) {
       console.error("Error uploading scan:", err);
       setLoading(false);
-      alert("Error uploading scan. Please try again.");
+      alert(err.message || "Error uploading scan. Please try again.");
     }
   };
 
@@ -83,7 +121,7 @@ export default function UploadScan() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-             <h1 className="text-xl font-bold text-white">MedVision AI Lab</h1>
+             <h1 className="text-xl font-bold text-white">MedVision AI</h1>
             </div>
 
             <nav className="flex space-x-8">
@@ -100,7 +138,7 @@ export default function UploadScan() {
                 to="/consult"
                 className="text-gray-300 hover:text-white font-medium px-3 py-2"
               >
-                Consult   
+                History
               </Link>
             </nav>
           </div>
@@ -175,7 +213,7 @@ export default function UploadScan() {
                 <input
                   name="name"
                   placeholder="Enter full name"
-                  className="w-full bg-white border border-gray-300 p-3 rounded-xl focus:border-green-400 focus:outline-none"
+                  className="w-full text-black bg-white border border-gray-300 p-3 rounded-xl focus:border-green-400 focus:outline-none"
                   value={formData.name}
                   onChange={handleChange}
                   required
@@ -216,15 +254,17 @@ export default function UploadScan() {
                 <label className="block text-gray-700 font-medium mb-2">
                   Scan Date
                 </label>
-                <div className="flex items-center bg-white border border-gray-300 rounded-xl p-3 focus-within:border-green-400">
+                <div className="relative">
                   <input
-                    type="date"
+                    type="text"
                     name="date"
-                    className="bg-white text-black flex-grow focus:outline-none"
+                    value={formData.date}
                     onChange={handleChange}
+                    placeholder="DD-MM-YYYY"
+                    className="w-full bg-white text-black border border-gray-300 p-3 rounded-xl focus:border-green-400 focus:outline-none"
                     required
                   />
-                  <Calendar className="text-gray-400" />
+                  <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5 pointer-events-none" />
                 </div>
               </div>
 
