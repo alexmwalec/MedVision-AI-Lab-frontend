@@ -151,17 +151,7 @@ export default function Consult() {
               <div className="bg-green-500 h-1.5 rounded-full" style={{ width: '100%' }}></div>
             </div>
           </div>
-          <div className="bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-700">
-            <div className="text-3xl font-bold text-red-400 mb-1">
-              {patients.filter(p => p.priority === 'critical' || p.priority === 'high').length}
-            </div>
-            <div className="text-gray-400 text-sm">Urgent Cases</div>
-            <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
-              <div className="bg-red-500 h-1.5 rounded-full" style={{
-                width: `${patients.length > 0 ? (patients.filter(p => p.priority === 'critical' || p.priority === 'high').length / patients.length) * 100 : 0}%`
-              }}></div>
-            </div>
-          </div>
+        
         </div>
 
         {/* Controls */}
