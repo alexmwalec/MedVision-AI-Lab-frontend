@@ -189,7 +189,6 @@ export default function Consult() {
             <div className="col-span-2">Patient Information</div>
             <div className="col-span-2">Scan Details</div>
             <div className="col-span-2">AI Findings</div>
-            <div className="col-span-2">Priority</div>
             <div className="col-span-3">Actions</div>
           </div>
 
@@ -258,14 +257,6 @@ export default function Consult() {
                           +{patient.aiFindings.length - 1} more
                         </p>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Priority */}
-                  <div className="col-span-2">
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full border ${getPriorityColor(patient.priority || 'medium')}`}>
-                      <div className={`w-2 h-2 rounded-full mr-2 ${getPriorityColor(patient.priority || 'medium').split(' ')[0]}`}></div>
-                      <span className="text-sm font-medium capitalize">{patient.priority || 'medium'}</span>
                     </div>
                   </div>
 
