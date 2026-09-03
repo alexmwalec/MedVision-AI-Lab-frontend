@@ -3,6 +3,7 @@ import UploadScan from "./Pages/UploadScan/UploadScan";
 import DiagnosticResults from "./Pages/DiagnosticResults/DiagnosticResults";
 import Constult from "./Pages/Constult/Constult";
 import RadiologistConsultation from "./Pages/Radiologist/ Radiologist Consultation ";
+import DICOMViewer from "./Pages/DICOMViewer/DICOMViewer";
 
 function App(){
   return (
@@ -15,6 +16,7 @@ function App(){
         <Route path="/results/:patientId" element={<DiagnosticResults/>}/>
         <Route path="/consult" element={<Constult/>}/>
         <Route path="/radiologistconsult" element={<RadiologistConsultation/>}/>
+        <Route path="/dicom-viewer" element={<DICOMViewer/>}/>
 
         </Routes>
       </div>
