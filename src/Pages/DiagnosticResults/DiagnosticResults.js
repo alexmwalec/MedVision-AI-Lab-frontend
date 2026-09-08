@@ -3,8 +3,7 @@ import {
   User,
   Scan,
   AlertCircle,
-  CheckCircle,
-  Image as ImageIcon,
+  CheckCircle, Flame,
 } from "lucide-react";
 import {
   useNavigate,
@@ -212,14 +211,11 @@ export default function DiagnosticResults() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* =====================================================
-              LEFT COLUMN
-          ====================================================== */}
+          {/*LEFT COLUMN*/}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* ===================================================
-                DICOM / IMAGE VIEWER
-            ==================================================== */}
+            
+             
             <div className="bg-gray-800 rounded-2xl p-6 shadow-xl">
 
               <div className="flex items-center justify-between mb-4">
