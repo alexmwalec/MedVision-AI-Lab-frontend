@@ -47,17 +47,18 @@ const processFindings = (findings) => {
   
   const normalized = findings.map(normalizeFinding);
   
-  // Filter for high confidence (>= 70%)
-  const highConfidence = normalized.filter(f => f.probability >= 70);
-  
-  // Sort by probability descending
+  // Preserve every model finding so the diagnostic workspace can provide a
+  // recommendation for each disease, including lower-confidence candidates.
+  // Clinical urgency is communicated by the displayed confidence instead of
+  // silently discarding predictions below an arbitrary threshold.
+  const highConfidence = normalized;
   highConfidence.sort((a, b) => b.probability - a.probability);
 
   if (highConfidence.length === 0) {
     return [{
       name: "No Significant Findings",
       probability: 100,
-      description: "The AI analysis did not detect any abnormalities with high confidence (>= 70%).",
+      description: "The AI analysis did not return any abnormality predictions.",
       recommendations: ["No immediate action required based on this scan.", "Follow up with a healthcare provider if symptoms persist."],
       color: "#10B981" // Green
     }];

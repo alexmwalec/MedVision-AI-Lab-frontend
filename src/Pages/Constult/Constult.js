@@ -67,16 +67,6 @@ export default function Consult() {
     return dateValue;
   };
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'critical': return 'text-red-400 bg-red-400/10 border-red-400';
-      case 'high': return 'text-orange-400 bg-orange-400/10 border-orange-400';
-      case 'medium': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400';
-      case 'low': return 'text-green-400 bg-green-400/10 border-green-400';
-      default: return 'text-gray-400 bg-gray-400/10 border-gray-400';
-    }
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'urgent': return 'bg-red-500';
@@ -189,7 +179,6 @@ export default function Consult() {
             <div className="col-span-2">Patient Information</div>
             <div className="col-span-2">Scan Details</div>
             <div className="col-span-2">AI Findings</div>
-            <div className="col-span-2">Priority</div>
             <div className="col-span-3">Actions</div>
           </div>
 
@@ -260,15 +249,6 @@ export default function Consult() {
                       )}
                     </div>
                   </div>
-
-                  {/* Priority */}
-                  <div className="col-span-2">
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full border ${getPriorityColor(patient.priority || 'medium')}`}>
-                      <div className={`w-2 h-2 rounded-full mr-2 ${getPriorityColor(patient.priority || 'medium').split(' ')[0]}`}></div>
-                      <span className="text-sm font-medium capitalize">{patient.priority || 'medium'}</span>
-                    </div>
-                  </div>
-
                   {/* Actions */}
                   <div className="col-span-3">
                     <div className="flex space-x-2">
