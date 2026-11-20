@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Activity, CheckCircle, Download, FileImage, Flame, Home, Image as ImageIcon, Maximize2, RotateCcw, ScanLine, Search, SlidersHorizontal, User, ZoomIn } from "lucide-react";
+import { Activity, CheckCircle, Download, FileImage, Flame, History, Home, Image as ImageIcon, Maximize2, RotateCcw, ScanLine, Search, SlidersHorizontal, ZoomIn } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { getPatient } from "../../api/medvisionApi";
+import { downloadFindingsPdf } from "./createFindingsPdf";
 import "./DiagnosticResults.css";
 
 export default function DiagnosticResults() {
@@ -11,6 +12,10 @@ export default function DiagnosticResults() {
   const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState("heatmap");
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+  const [showAdjust, setShowAdjust] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +69,7 @@ export default function DiagnosticResults() {
       <header className="diagnostic-topbar">
         <Link to="/" className="diagnostic-brand"><span className="brand-mark"><Activity size={15} /></span><span>MedVision <b>INSIGHT</b><small> CXR</small></span></Link>
         <div className="topbar-center"><Link to="/">UPLOAD SCAN</Link><span className="topbar-divider" /><span className="topbar-current">DIAGNOSTIC ANALYSIS</span></div>
-        <div className="topbar-patient"><span>{patientData.name || "Patient study"}</span><span className="patient-avatar"><User size={14} /></span></div>
+        <Link to="/consult" className="topbar-history"><History size={15} /> <span>Study History</span></Link>
       </header>
 
       <div className="diagnostic-body">
@@ -76,12 +81,13 @@ export default function DiagnosticResults() {
                 <button className={showingHeatmap ? "selected" : ""} onClick={() => setActiveView("heatmap")}><Flame size={13} /> Heatmap</button>
                 <button className={!showingHeatmap ? "selected" : ""} onClick={() => setActiveView("original")}><ImageIcon size={13} /> Original</button>
               </div>}
-              <button className="icon-tool" title="Zoom"><ZoomIn size={16} /></button><button className="icon-tool" title="Adjust image"><SlidersHorizontal size={16} /></button><button className="icon-tool" title="Reset view"><RotateCcw size={15} /></button><button className="icon-tool" title="Fit image"><Maximize2 size={15} /></button>
+              <button className="icon-tool" title={`Zoom in (${Math.round(zoomLevel * 100)}%)`} onClick={() => setZoomLevel((current) => Math.min(3, Number((current + 0.25).toFixed(2))))}><ZoomIn size={16} /></button><button className={`icon-tool ${showAdjust ? "tool-active" : ""}`} title="Adjust image" onClick={() => setShowAdjust((current) => !current)}><SlidersHorizontal size={16} /></button><button className="icon-tool" title="Reset adjustments" onClick={() => { setBrightness(100); setContrast(100); }}><RotateCcw size={15} /></button><button className="icon-tool" title="Fit image" onClick={() => { setZoomLevel(1); setBrightness(100); setContrast(100); }}><Maximize2 size={15} /></button>
             </div>
           </div>
+          {showAdjust && <div className="image-adjust-panel"><label>Brightness <input type="range" min="50" max="150" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /><b>{brightness}%</b></label><label>Contrast <input type="range" min="50" max="180" value={contrast} onChange={(event) => setContrast(Number(event.target.value))} /><b>{contrast}%</b></label></div>}
           <div className="scan-stage">
             <div className="scan-image-frame">
-              {activeSrc ? <img src={activeSrc} alt={showingHeatmap ? "AI analysis heatmap overlay" : "Uploaded diagnostic scan"} className="scan-image" /> : <div className="scan-empty"><FileImage size={42} /><span>No image available for this study</span></div>}
+              {activeSrc ? <img src={activeSrc} alt={showingHeatmap ? "AI analysis heatmap overlay" : "Uploaded diagnostic scan"} className="scan-image" style={{ transform: `scale(${zoomLevel})`, filter: `brightness(${brightness}%) contrast(${contrast}%)` }} /> : <div className="scan-empty"><FileImage size={42} /><span>No image available for this study</span></div>}
               <div className="image-caption"><ScanLine size={13} /> {showingHeatmap ? "AI ATTENTION MAP" : "ORIGINAL IMAGE"}</div>
             </div>
             <div className="scan-side-note"><span>STUDY</span><b>{patientData.patientId || "—"}</b><span>PROCESSED</span><b>{formatDate(patientData.date)}</b></div>
@@ -105,7 +111,7 @@ export default function DiagnosticResults() {
 
           <div className="rail-section results-section">
             <div className="rail-heading"><span>INSIGHT ANALYSIS</span><span className="ai-badge">AI</span></div>
-            <div className="score-title"><span>Top finding</span><span className={`status-pill ${topFinding ? "status-alert" : "status-clear"}`}>{topFinding ? "REVIEW" : "CLEAR"}</span></div>
+            <div className="score-title"><span>Top finding</span></div>
             <div className="finding-primary">{topFinding?.name || "No significant findings"}</div>
             <div className="score-row"><span>Confidence</span><b>{topFinding?.probability != null ? `${topFinding.probability}%` : "—"}</b></div>
             <div className="score-track"><span style={{ width: `${Math.min(100, Math.max(0, Number(topFinding?.probability) || 0))}%`, background: topFinding?.color || "#21c7bd" }} /></div>
@@ -119,7 +125,7 @@ export default function DiagnosticResults() {
             <div className="rail-heading"><span>RECOMMENDATIONS</span><CheckCircle size={14} /></div>
             {findings.length ? findings.map((finding, index) => <div className="recommendation" key={`rec-${index}`}><b>{finding.name || "Clinical review"}</b><p>{finding.recommendations?.length ? finding.recommendations.join(" ") : "Correlate with clinical presentation and review with a qualified clinician."}</p></div>) : <p className="muted-copy">No recommendations available.</p>}
           </div>
-          <div className="rail-actions"><button className="report-button" onClick={() => window.print()}><Download size={15} /> Print / Save Report</button><Link to="/consult" className="history-link"><Home size={14} /> View study history</Link></div>
+          <div className="rail-actions"><button className="report-button" onClick={() => downloadFindingsPdf({ findings, processedDate: patientData.date ? formatDate(patientData.date) : null, patientName: patientData.name, patientId: patientData.patientId })}><Download size={15} /> Download PDF Report</button><Link to="/consult" className="history-link"><Home size={14} /> View study history</Link></div>
         </aside>
       </div>
     </main>

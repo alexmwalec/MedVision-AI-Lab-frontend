@@ -24,8 +24,8 @@
 .topbar-center a { color: #9eafbf; text-decoration: none; }
 .topbar-current { height: 100%; display: flex; align-items: center; color: #54d0dc; border-bottom: 2px solid #24c5d2; }
 .topbar-divider { height: 17px; border-left: 1px solid #33475b; }
-.topbar-patient { display: flex; align-items: center; gap: 10px; color: #aebdca; font-size: 12px; }
-.patient-avatar { display: grid; place-items: center; width: 29px; height: 29px; border: 1px solid #38516a; border-radius: 50%; color: #53c8d4; }
+.topbar-history { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid #2e4a60; border-radius: 4px; color: #c4d5e1; background: #12263b; text-decoration: none; font-size: 12px; font-weight: 600; }
+.topbar-history:hover { border-color: #36bfce; color: #effcff; background: #16354b; }
 .diagnostic-body { height: calc(100vh - 58px); display: grid; grid-template-columns: minmax(0, 1fr) 345px; }
 .scan-workspace { min-width: 0; display: flex; flex-direction: column; background: #03080d; border-right: 1px solid #22384e; }
 .scan-toolbar { min-height: 55px; padding: 0 21px; display: flex; align-items: center; justify-content: space-between; background: #0a1725; border-bottom: 1px solid #1c3045; }
@@ -37,13 +37,18 @@
 .scan-tools { gap: 7px; }
 .view-switch { display: flex; align-items: center; gap: 2px; padding: 3px; margin-right: 8px; border: 1px solid #30475d; border-radius: 5px; background: #102136; }
 .view-switch button, .icon-tool { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 0; color: #9dafbf; background: transparent; cursor: pointer; }
-.view-switch button { padding: 6px 9px; border-radius: 3px; font: 600 10px inherit; }
+.view-switch button { padding: 6px 9px; border-radius: 3px; font-family: inherit; font-size: 10px; font-weight: 600; }
 .view-switch button.selected { color: #ecfcff; background: #128da4; }
 .icon-tool { width: 31px; height: 31px; border: 1px solid #2b4257; border-radius: 4px; }
 .icon-tool:hover { color: #dffaff; background: #172c41; }
+.icon-tool.tool-active { border-color: #20b7c5; color: #e8fcff; background: #0c6172; }
+.image-adjust-panel { display: flex; justify-content: flex-end; gap: 20px; padding: 9px 22px; color: #b5c7d4; background: #102136; border-bottom: 1px solid #263d53; }
+.image-adjust-panel label { display: flex; align-items: center; gap: 8px; font-size: 10px; }
+.image-adjust-panel input { width: 105px; accent-color: #28bfd0; }
+.image-adjust-panel b { min-width: 34px; color: #e3f4f7; font-size: 10px; }
 .scan-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 17px; padding: 14px 20px 10px; overflow: hidden; }
-.scan-image-frame { position: relative; height: 100%; max-width: calc(100% - 93px); display: flex; align-items: center; justify-content: center; background: #000; border: 1px solid #192b3a; box-shadow: 0 10px 40px #0008; }
-.scan-image { display: block; width: 100%; height: 100%; object-fit: contain; }
+.scan-image-frame { position: relative; height: 100%; max-width: calc(100% - 93px); display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000; border: 1px solid #192b3a; box-shadow: 0 10px 40px #0008; }
+.scan-image { display: block; width: 100%; height: 100%; object-fit: contain; transition: transform .18s ease, filter .18s ease; }
 .scan-empty { display: flex; flex-direction: column; align-items: center; gap: 13px; padding: 60px; color: #667d91; }
 .image-marker { position: absolute; left: 12px; color: #f2f6f7; font-size: 14px; font-weight: 700; text-shadow: 0 1px 4px #000; }
 .marker-left { top: 11px; }.marker-bottom { top: 32px; font-size: 10px; }
@@ -62,7 +67,7 @@
 .study-meta b { color: #d2dee8; font-weight: 550; }
 .control-label { margin-bottom: 8px; color: #8299ad; font-size: 9px; font-weight: 700; letter-spacing: .6px; }
 .display-control { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.display-control button { height: 34px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #30475e; border-radius: 4px; color: #a9bac8; background: #12283f; font: 600 10px inherit; cursor: pointer; }
+.display-control button { height: 34px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #30475e; border-radius: 4px; color: #a9bac8; background: #12283f; font-family: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
 .display-control button.active { border-color: #1cb7cb; color: #effdff; background: #087f97; }.display-control button:disabled { opacity: .45; cursor: default; }
 .overlay-legend { display: flex; align-items: center; gap: 9px; margin-top: 14px; }.legend-gradient { width: 85px; height: 7px; border-radius: 5px; background: linear-gradient(90deg, #14b8a6, #a3d839, #ffd33d, #ee554d); }.overlay-legend div { flex: 1; display: flex; justify-content: space-between; color: #8296a9; font-size: 8px; }
 .ai-badge { padding: 3px 6px; border: 1px solid #237b91; border-radius: 3px; color: #5ed3de; font-size: 8px; letter-spacing: .4px; }
@@ -73,7 +78,7 @@
 .finding-description { margin: 11px 0 0; color: #a4b6c4; font-size: 10px; line-height: 1.5; }
 .finding-list { margin-top: 14px; border-top: 1px solid #263b51; }.finding-row { min-height: 33px; display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 8px; border-bottom: 1px solid #20364b; color: #bfccd6; font-size: 10px; }.finding-row b { color: #e2eaf0; font-size: 10px; }.finding-dot { width: 6px; height: 6px; border-radius: 50%; }
 .recommendation-section > .rail-heading { margin-bottom: 11px; }.recommendation-section > .rail-heading svg { color: #50c6b6; }.recommendation { padding: 9px 10px; margin-top: 7px; border: 1px solid #293f54; border-radius: 4px; background: #132941; }.recommendation b { color: #dce7ef; font-size: 10px; }.recommendation p, .muted-copy { margin: 5px 0 0; color: #9aafbf; font-size: 10px; line-height: 1.5; }
-.rail-actions { padding: 15px 18px 18px; }.report-button { width: 100%; height: 37px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 4px; color: #061d2b; background: #27bfd0; font: 700 11px inherit; cursor: pointer; }.report-button:hover { background: #52d4df; }.history-link { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; color: #9fb2c2; text-decoration: none; font-size: 10px; }.history-link:hover { color: #e2faff; }
+.rail-actions { padding: 15px 18px 18px; }.report-button { width: 100%; height: 37px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 4px; color: #061d2b; background: #27bfd0; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }.report-button:hover { background: #52d4df; }.history-link { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; color: #9fb2c2; text-decoration: none; font-size: 10px; }.history-link:hover { color: #e2faff; }
 @media (max-width: 900px) { .diagnostic-workstation { height: auto; min-height: 100vh; overflow: auto; }.diagnostic-body { height: auto; grid-template-columns: 1fr; }.scan-workspace { min-height: 65vh; }.scan-stage { min-height: 52vh; }.analysis-rail { overflow: visible; }.topbar-center { display: none; } }
-@media (max-width: 560px) { .diagnostic-topbar { height: 52px; padding: 0 13px; }.diagnostic-body { height: auto; }.topbar-patient { max-width: 120px; overflow: hidden; white-space: nowrap; }.scan-toolbar { padding: 8px 11px; align-items: flex-start; flex-direction: column; gap: 8px; }.scan-tools { width: 100%; }.view-switch { margin-right: auto; }.scan-stage { padding: 9px; }.scan-image-frame { max-width: calc(100% - 58px); }.scan-side-note { width: 48px; flex-basis: 48px; }.scan-footer span:last-child { display: none; } }
+@media (max-width: 560px) { .diagnostic-topbar { height: 52px; padding: 0 13px; }.diagnostic-body { height: auto; }.topbar-history { padding: 7px 9px; font-size: 11px; }.scan-toolbar { padding: 8px 11px; align-items: flex-start; flex-direction: column; gap: 8px; }.scan-tools { width: 100%; }.view-switch { margin-right: auto; }.scan-stage { padding: 9px; }.scan-image-frame { max-width: calc(100% - 58px); }.scan-side-note { width: 48px; flex-basis: 48px; }.scan-footer span:last-child { display: none; } }
 @media print { .diagnostic-workstation { height: auto; overflow: visible; color: #111; background: white; }.diagnostic-topbar, .scan-toolbar, .scan-footer, .rail-actions { print-color-adjust: exact; }.diagnostic-body { height: auto; grid-template-columns: minmax(0, 1fr) 300px; }.analysis-rail { overflow: visible; }.scan-stage { min-height: 65vh; } }
