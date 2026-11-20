@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { FileText, User, Scan, AlertCircle, CheckCircle, Download, MessageCircle } from "lucide-react";
+import { FileText, User, Scan, AlertCircle, CheckCircle, Download, MessageCircle, Eye, X } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { downloadDiagnosticPdf } from "./diagnosticReportPdf";
+import "./DiagnosticReportPreview.css";
  
 export default function DiagnosticResults() {
   const navigate = useNavigate();
@@ -8,6 +10,9 @@ export default function DiagnosticResults() {
 
   const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showReportPreview, setShowReportPreview] = useState(false);
+  const [reportError, setReportError] = useState("");
+  const [uploadedImageUrl, setUploadedImageUrl] = useState("");
 
   useEffect(() => {
     if (location.state?.patientData) {
@@ -29,6 +34,16 @@ export default function DiagnosticResults() {
     }
   }, [location.state, navigate]);
 
+  useEffect(() => {
+    if (!patientData?.image) {
+      setUploadedImageUrl("");
+      return undefined;
+    }
+    const imageUrl = URL.createObjectURL(patientData.image);
+    setUploadedImageUrl(imageUrl);
+    return () => URL.revokeObjectURL(imageUrl);
+  }, [patientData?.image]);
+
   const handleSpecialistConsult = async () => {
     navigate("/consult");
   };
@@ -40,6 +55,32 @@ export default function DiagnosticResults() {
       </div>
     );
   }
+  const formatDate = (value) => {
+    if (!value) return new Date().toLocaleDateString();
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString(undefined, { year: "numeric", month: "2-digit", day: "2-digit" });
+  };
+  const originalImage = uploadedImageUrl || patientData.imageUrl || "";
+  const diseaseRows = (patientData.aiFindings || [])
+    .filter((finding) => finding.name && String(finding.name).toLowerCase() !== "no significant findings")
+    .map((finding) => ({ disease: finding.name, confidence: finding.probability == null ? "N/A" : `${finding.probability}%` }));
+  const downloadReport = async () => {
+    setReportError("");
+    try {
+      await downloadDiagnosticPdf({
+        patientName: patientData.name,
+        patientId: patientData.patientId,
+        scanType: patientData.scanType,
+        processedDate: formatDate(patientData.date),
+        originalImage,
+        heatmapImage: patientData.heatmapUrl || "",
+        findings: diseaseRows,
+      });
+    } catch (error) {
+      console.error("Unable to create diagnostic report:", error);
+      setReportError("The report could not include one of the images. Check that both images are available, then try again.");
+    }
+  };
   return (
     <div className="min-h-screen bg-cyan-900">
       {/* Header */}
@@ -82,7 +123,7 @@ export default function DiagnosticResults() {
               <div className="flex justify-center mb-4">
                 {patientData.image ? (
                   <img 
-                    src={URL.createObjectURL(patientData.image)} 
+                    src={uploadedImageUrl}
                     alt="Uploaded Scan" 
                     className="rounded-xl w-full border-2 border-gray-600"
                   />
@@ -193,9 +234,9 @@ export default function DiagnosticResults() {
 
             {/* Actions */}
             <div className="flex space-x-4">
-              <button className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition-colors duration-200 flex items-center justify-center">
-                <Download className="h-5 w-5 mr-2" />
-                Download Report
+              <button onClick={() => setShowReportPreview(true)} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition-colors duration-200 flex items-center justify-center">
+                <Eye className="h-5 w-5 mr-2" />
+                Preview Report
               </button>
 
               {/* Specialist Consult */}
@@ -211,6 +252,24 @@ export default function DiagnosticResults() {
           </div>
         </div>
       </div>
+      {showReportPreview && <div className="report-preview-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowReportPreview(false); }}>
+        <section className="report-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="report-preview-title">
+          <header className="report-preview-toolbar"><div><FileText size={18} /><span>Report preview</span></div><button onClick={() => setShowReportPreview(false)} aria-label="Close report preview"><X size={20} /></button></header>
+          <div className="report-preview-scroll">
+            <article className="report-sheet">
+              <div className="report-sheet-brand"><b>MedVision AI</b><span>DIAGNOSTIC REPORT</span></div>
+              <h2 id="report-preview-title">Diagnostic Findings Report</h2>
+              <div className="report-meta-grid"><div><small>Patient</small><b>{patientData.name || "Not provided"}</b></div><div><small>Patient ID</small><b>{patientData.patientId || "Not provided"}</b></div><div><small>Scan type</small><b>{patientData.scanType || "Medical imaging"}</b></div><div><small>Date processed</small><b>{formatDate(patientData.date)}</b></div></div>
+              <h3 className="report-section-title">I &nbsp; Scan images</h3>
+              <div className="report-images-grid"><figure><div>{originalImage ? <img src={originalImage} alt="Original diagnostic image" /> : <span>Original image unavailable</span>}</div><figcaption>Original image</figcaption></figure><figure><div>{patientData.heatmapUrl ? <img src={patientData.heatmapUrl} alt="AI heatmap image" /> : <span>AI heatmap unavailable</span>}</div><figcaption>AI heatmap</figcaption></figure></div>
+              <h3 className="report-section-title">II &nbsp; Detected diseases and confidence</h3>
+              <table className="report-findings-table"><thead><tr><th>Disease</th><th>Confidence score</th></tr></thead><tbody>{diseaseRows.length ? diseaseRows.map((row, index) => <tr key={`${row.disease}-${index}`}><td>{row.disease}</td><td>{row.confidence}</td></tr>) : <tr><td>No significant findings detected</td><td>N/A</td></tr>}</tbody></table>
+              <p className="report-disclaimer">AI generated findings are intended to support qualified clinical review.</p>
+            </article>
+          </div>
+          <footer className="report-preview-footer">{reportError && <span className="report-error">{reportError}</span>}<button className="report-download-button" onClick={downloadReport}><Download size={16} /> Download PDF</button></footer>
+        </section>
+      </div>}
     </div>
   );
 }
