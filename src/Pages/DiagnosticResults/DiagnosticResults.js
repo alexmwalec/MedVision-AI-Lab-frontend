@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Activity, CheckCircle, Download, FileImage, Flame, History, Home, Image as ImageIcon, Maximize2, RotateCcw, ScanLine, Search, SlidersHorizontal, ZoomIn } from "lucide-react";
+import { Activity, CheckCircle, Download, Eye, FileImage, Flame, History, Home, Image as ImageIcon, Maximize2, RotateCcw, ScanLine, Search, SlidersHorizontal, X, ZoomIn } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { getPatient } from "../../api/medvisionApi";
-import { downloadFindingsPdf } from "./createFindingsPdf";
+import { downloadDiagnosticPdf } from "./diagnosticReportPdf";
 import "./DiagnosticResults.css";
+import "./DiagnosticReportPreview.css";
 
 export default function DiagnosticResults() {
   const navigate = useNavigate();
@@ -16,6 +17,9 @@ export default function DiagnosticResults() {
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [showAdjust, setShowAdjust] = useState(false);
+  const [showReportPreview, setShowReportPreview] = useState(false);
+  const [localImageUrl, setLocalImageUrl] = useState("");
+  const [reportError, setReportError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +30,16 @@ export default function DiagnosticResults() {
           if (!cancelled) setPatientData(patient);
         } catch (error) {
           console.error("Unable to load saved patient:", error);
-          if (!cancelled) setPatientData(location.state?.patientData || null);
+          if (!cancelled) {
+            const fallback = location.state?.patientData || (location.state?.formData
+              ? {
+                ...location.state.formData,
+                aiFindings: Array.isArray(location.state.aiData) ? location.state.aiData : [location.state.aiData].filter(Boolean),
+                heatmapUrl: location.state.heatmapUrl
+              }
+              : null);
+            setPatientData(fallback);
+          }
         } finally {
           if (!cancelled) setLoading(false);
         }
@@ -45,6 +58,16 @@ export default function DiagnosticResults() {
     return () => { cancelled = true; };
   }, [patientId, location.state, navigate]);
 
+  useEffect(() => {
+    if (!patientData?.image) {
+      setLocalImageUrl("");
+      return undefined;
+    }
+    const imageUrl = URL.createObjectURL(patientData.image);
+    setLocalImageUrl(imageUrl);
+    return () => URL.revokeObjectURL(imageUrl);
+  }, [patientData?.image]);
+
   const formatDate = (value) => {
     if (!value) return "N/A";
     if (typeof value === "string") {
@@ -56,13 +79,34 @@ export default function DiagnosticResults() {
 
   if (loading || !patientData) return <div className="diagnostic-loading">Loading results…</div>;
 
-  const originalSrc = patientData.image ? URL.createObjectURL(patientData.image) : patientData.imageUrl || null;
+  const originalSrc = localImageUrl || patientData.imageUrl || null;
   const hasHeatmap = Boolean(patientData.heatmapUrl);
   const showingHeatmap = activeView === "heatmap" && hasHeatmap;
   const activeSrc = showingHeatmap ? patientData.heatmapUrl : originalSrc;
   const findings = patientData.aiFindings || [];
   const notableFindings = findings.filter((finding) => finding.name !== "No Significant Findings");
   const topFinding = notableFindings[0];
+  const reportFindings = notableFindings.map((finding) => ({
+    disease: finding.name,
+    confidence: finding.probability == null ? "N/A" : `${finding.probability}%`
+  }));
+  const downloadReport = async () => {
+    setReportError("");
+    try {
+      await downloadDiagnosticPdf({
+        patientName: patientData.name,
+        patientId: patientData.patientId,
+        scanType: patientData.scanType || "Chest X-ray",
+        processedDate: formatDate(patientData.date),
+        originalImage: originalSrc,
+        heatmapImage: patientData.heatmapUrl || "",
+        findings: reportFindings
+      });
+    } catch (error) {
+      console.error("Unable to generate report PDF:", error);
+      setReportError("The PDF could not load both scan images. Check their availability and try again.");
+    }
+  };
 
   return (
     <main className="diagnostic-workstation">
@@ -125,9 +169,25 @@ export default function DiagnosticResults() {
             <div className="rail-heading"><span>RECOMMENDATIONS</span><CheckCircle size={14} /></div>
             {findings.length ? findings.map((finding, index) => <div className="recommendation" key={`rec-${index}`}><b>{finding.name || "Clinical review"}</b><p>{finding.recommendations?.length ? finding.recommendations.join(" ") : "Correlate with clinical presentation and review with a qualified clinician."}</p></div>) : <p className="muted-copy">No recommendations available.</p>}
           </div>
-          <div className="rail-actions"><button className="report-button" onClick={() => downloadFindingsPdf({ findings, processedDate: patientData.date ? formatDate(patientData.date) : null, patientName: patientData.name, patientId: patientData.patientId })}><Download size={15} /> Download PDF Report</button><Link to="/consult" className="history-link"><Home size={14} /> View study history</Link></div>
+          <div className="rail-actions"><button className="report-button" onClick={() => setShowReportPreview(true)}><Eye size={15} /> Preview Report</button><Link to="/consult" className="history-link"><Home size={14} /> View study history</Link></div>
         </aside>
       </div>
+      {showReportPreview && <div className="report-preview-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowReportPreview(false); }}>
+        <section className="report-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="report-preview-title">
+          <header className="report-preview-toolbar"><div><FileImage size={18} /><span>Report preview</span></div><button onClick={() => setShowReportPreview(false)} aria-label="Close report preview"><X size={20} /></button></header>
+          <div className="report-preview-scroll"><article className="report-sheet">
+            <div className="report-sheet-brand"><b>MedVision AI</b><span>DIAGNOSTIC REPORT</span></div>
+            <h2 id="report-preview-title">Diagnostic Findings Report</h2>
+            <div className="report-meta-grid"><div><small>Patient</small><b>{patientData.name || "Not provided"}</b></div><div><small>Patient ID</small><b>{patientData.patientId || "Not provided"}</b></div><div><small>Scan type</small><b>{patientData.scanType || "Medical imaging"}</b></div><div><small>Date processed</small><b>{formatDate(patientData.date)}</b></div></div>
+            <h3 className="report-section-title">I &nbsp; Scan images</h3>
+            <div className="report-images-grid"><figure><div>{originalSrc ? <img src={originalSrc} alt="Original diagnostic scan" /> : <span>Original image unavailable</span>}</div><figcaption>Original image</figcaption></figure><figure><div>{patientData.heatmapUrl ? <img src={patientData.heatmapUrl} alt="AI heatmap overlay" /> : <span>AI heatmap unavailable</span>}</div><figcaption>AI heatmap</figcaption></figure></div>
+            <h3 className="report-section-title">II &nbsp; Diseases detected and confidence</h3>
+            <table className="report-findings-table"><thead><tr><th>Disease</th><th>Confidence score</th></tr></thead><tbody>{reportFindings.length ? reportFindings.map((row, index) => <tr key={`${row.disease}-${index}`}><td>{row.disease}</td><td>{row.confidence}</td></tr>) : <tr><td>No significant findings detected</td><td>N/A</td></tr>}</tbody></table>
+            <p className="report-disclaimer">AI-generated findings are intended to support qualified clinical review.</p>
+          </article></div>
+          <footer className="report-preview-footer">{reportError && <span className="report-error">{reportError}</span>}<button className="report-download-button" onClick={downloadReport}><Download size={16} /> Download PDF</button></footer>
+        </section>
+      </div>}
     </main>
   );
 }

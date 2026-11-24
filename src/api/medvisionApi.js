@@ -1,4 +1,7 @@
-const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || "http://localhost:5000/api").replace(/\/$/, "");
+const browserHost = typeof window === "undefined" ? "localhost" : window.location.hostname;
+const browserProtocol = typeof window === "undefined" ? "http:" : window.location.protocol;
+const defaultApiUrl = `${browserProtocol}//${browserHost}:5000/api`;
+const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || defaultApiUrl).replace(/\/$/, "");
 const API_ORIGIN = API_BASE_URL.replace(/\/api$/, "");
 
 const parseJson = async (response) => {

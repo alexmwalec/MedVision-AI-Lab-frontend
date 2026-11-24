@@ -1,296 +1,125 @@
-import { Scan, MessageCircle, Search, Filter, Send } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Activity, AlertTriangle, CalendarDays, ClipboardList, Filter, History, Hospital, Search, Send } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { getPatients, requestRadiologistReview } from "../../api/medvisionApi";
+import "./Constult.css";
+
+const PAGE_SIZE = 20;
 
 export default function Consult() {
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
-  const [filteredPatients, setFilteredPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [diseaseFilter, setDiseaseFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchPatients();
-  }, []);
-
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredPatients(patients);
-    } else {
-      const searchLower = searchTerm.toLowerCase().trim();
-      const filtered = patients.filter(patient => {
-        return (
-          patient.name?.toLowerCase().includes(searchLower) ||
-          patient.patientId?.toLowerCase().includes(searchLower) ||
-          patient.scanType?.toLowerCase().includes(searchLower) ||
-          patient.aiFindings?.some(finding =>
-            finding.name?.toLowerCase().includes(searchLower)
-          ) ||
-          patient.date?.includes(searchTerm) ||
-          patient.priority?.toLowerCase().includes(searchLower)
-        );
-      });
-      setFilteredPatients(filtered);
-    }
-  }, [searchTerm, patients]);
+  const [loadError, setLoadError] = useState("");
 
   const fetchPatients = async () => {
+    setLoadError("");
     try {
-      const response = await getPatients();
-      const patientsData = Array.isArray(response) ? response : response.patients || [];
-      setPatients(patientsData);
-      setFilteredPatients(patientsData);
+      const result = await getPatients();
+      setPatients(Array.isArray(result) ? result : result.patients || []);
     } catch (error) {
-      console.error("Error fetching patients:", error);
+      console.error("Unable to load patient history:", error);
+      setLoadError(error.message || "Unable to connect to the patient records service.");
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (dateValue) => {
-    if (!dateValue) return "N/A";
+  useEffect(() => { fetchPatients(); }, []);
 
-    if (typeof dateValue === 'string') {
-      if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        return dateValue;
-      }
+  const diseases = useMemo(() => [...new Set(patients.flatMap((patient) => (patient.aiFindings || [])
+    .map((finding) => finding.name)
+    .filter((name) => name && String(name).toLowerCase() !== "no significant findings")))].sort(), [patients]);
 
-      const parsedDate = new Date(dateValue);
-      if (!isNaN(parsedDate.getTime())) {
-        return parsedDate.toISOString().split('T')[0];
-      }
+  const filteredPatients = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return patients.filter((patient) => {
+      const findings = patient.aiFindings || [];
+      const matchesDisease = diseaseFilter === "all" || findings.some((finding) => finding.name === diseaseFilter);
+      const matchesQuery = !query || [patient.name, patient.patientId, patient.scanType, patient.date, ...findings.map((finding) => finding.name)]
+        .some((value) => String(value || "").toLowerCase().includes(query));
+      return matchesDisease && matchesQuery;
+    });
+  }, [patients, searchTerm, diseaseFilter]);
 
-      return dateValue;
-    }
+  useEffect(() => { setPage(1); }, [searchTerm, diseaseFilter]);
 
-    return dateValue;
+  const pageCount = Math.max(1, Math.ceil(filteredPatients.length / PAGE_SIZE));
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+  const visiblePatients = filteredPatients.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const withFindings = patients.filter((patient) => (patient.aiFindings || []).some((finding) => finding.name && String(finding.name).toLowerCase() !== "no significant findings")).length;
+  const urgentCases = patients.filter((patient) => ["high", "urgent", "critical"].includes(String(patient.priority || patient.status || "").toLowerCase())).length;
+  const clearStudies = patients.length - withFindings;
+
+  const formatDate = (value) => {
+    if (!value) return "Date unavailable";
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'critical': return 'text-red-400 bg-red-400/10 border-red-400';
-      case 'high': return 'text-orange-400 bg-orange-400/10 border-orange-400';
-      case 'medium': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400';
-      case 'low': return 'text-green-400 bg-green-400/10 border-green-400';
-      default: return 'text-gray-400 bg-gray-400/10 border-gray-400';
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'urgent': return 'bg-red-500';
-      case 'pending': return 'bg-yellow-500';
-      case 'reviewed': return 'bg-green-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const handleSendToRadiologist = async (patientId) => {
+  const openPatient = (patient) => navigate(`/results/${patient.id}`, { state: { patientData: patient } });
+  const referPatient = async (patientId) => {
     try {
       await requestRadiologistReview(patientId);
-
-      alert("Case sent to radiologist successfully!");
+      window.alert("Case sent to radiologist successfully.");
       fetchPatients();
     } catch (error) {
-      console.error("Error sending to radiologist:", error);
-      alert("Error sending case to radiologist.");
+      console.error("Unable to request radiologist review:", error);
+      window.alert(error.message || "Unable to send this case to a radiologist.");
     }
   };
 
-  const openPatient = (patient) => {
-    navigate(`/results/${patient.id}`, { state: { patientData: patient } });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white">Loading patients...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-white">MedVision AI</h1>
-            </div>
-
-            <nav className="flex space-x-8">
-              <Link to="/" className="text-gray-300 hover:text-white font-medium px-3 py-2">
-                Uploads
-              </Link>
-              <Link to="/results" className="text-gray-300 hover:text-white font-medium px-3 py-2">
-                Diagnostic Analysis
-              </Link>
-              <button className="text-green-400 font-semibold border-b-2 border-green-400 px-3 py-2">
-                History
-              </button>
-            </nav>
-          </div>
-        </div>
+    <main className="records-page">
+      <header className="records-header">
+        <Link to="/" className="records-brand"><span><Hospital size={18} /></span><b>MedVision <strong>AI</strong></b></Link>
+        <nav><Link to="/">Upload Scan</Link><Link to="/results">Diagnostic Analysis</Link><span className="records-nav-active"><History size={15} /> History</span></nav>
       </header>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Specialist Consultation</h1>
-          <p className="text-gray-400">Request expert review for complex cases and second opinions</p>
-        </div>
+      <div className="records-content">
+        <div className="records-breadcrumb"><span>Clinical workspace</span><b>/</b><span>Patient records</span></div>
+        <section className="records-title-row">
+          <div><div className="records-eyebrow"><ClipboardList size={14} /> PATIENT RECORDS</div><h1>Radiology History</h1><p>Review imaging studies, AI findings, and specialist referrals.</p></div>
+          <div className="records-date"><CalendarDays size={17} /><span>Study archive</span></div>
+        </section>
 
-        {/* Statistics - Now at the top */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <div className="bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-700">
-            <div className="text-3xl font-bold text-white mb-1">{patients.length}</div>
-            <div className="text-gray-400 text-sm">Total Cases</div>
-            <div className="mt-2 w-full bg-gray-700 rounded-full h-1.5">
-              <div className="bg-green-500 h-1.5 rounded-full" style={{ width: '100%' }}></div>
-            </div>
-          </div>
-        
-        </div>
+        <section className="records-stats" aria-label="Record summary">
+          <article><div className="stat-icon stat-blue"><ClipboardList size={18} /></div><div><span>Total studies</span><b>{patients.length}</b></div><small>All recorded cases</small></article>
+          <article><div className="stat-icon stat-amber"><Activity size={18} /></div><div><span>Studies with findings</span><b>{withFindings}</b></div><small>AI detected a finding</small></article>
+          <article><div className="stat-icon stat-red"><AlertTriangle size={18} /></div><div><span>Priority cases</span><b>{urgentCases}</b></div><small>Flagged for attention</small></article>
+          <article><div className="stat-icon stat-green"><Activity size={18} /></div><div><span>No significant findings</span><b>{clearStudies}</b></div><small>Based on AI assessment</small></article>
+        </section>
 
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Search patients, conditions, or IDs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-800 text-white pl-10 pr-4 py-3 rounded-xl border border-gray-600 focus:border-green-400 focus:outline-none"
-            />
-            {searchTerm && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <span className="text-gray-400 text-sm">
-                  {filteredPatients.length} results
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-3">
-            <button className="bg-gray-800 text-white px-4 py-3 rounded-xl border border-gray-600 hover:border-green-400 transition-colors flex items-center">
-              <Filter className="h-5 w-5 mr-2" />
-              Filter
-            </button>
-          </div>
-        </div>
-
-        {/* Patient List */}
-        <div className="bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
-          {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-750 border-b border-gray-700 text-gray-400 font-semibold text-sm">
-            <div className="col-span-1">Scan</div>
-            <div className="col-span-2">Patient Information</div>
-            <div className="col-span-2">Scan Details</div>
-            <div className="col-span-2">AI Findings</div>
-            <div className="col-span-3">Actions</div>
+        <section className="records-panel">
+          <div className="records-panel-heading"><div><h2>Study registry</h2><p>Patient imaging and diagnostic case details</p></div><span className="record-count">{filteredPatients.length} {filteredPatients.length === 1 ? "record" : "records"}</span></div>
+          <div className="records-controls">
+            <label className="records-search"><Search size={18} /><input aria-label="Search patient records" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search patient, ID, scan type, or finding" />{searchTerm && <button onClick={() => setSearchTerm("")} aria-label="Clear search">Clear</button>}</label>
+            <label className="disease-filter"><Filter size={16} /><select aria-label="Filter by disease" value={diseaseFilter} onChange={(event) => setDiseaseFilter(event.target.value)}><option value="all">All diseases</option>{diseases.map((disease) => <option key={disease} value={disease}>{disease}</option>)}</select></label>
           </div>
 
-          {/* Patient Rows */}
-          <div className="divide-y divide-gray-700">
-            {filteredPatients.length > 0 ? (
-              filteredPatients.map((patient) => (
-                <div key={patient.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-750 transition-colors items-center">
-
-                 <div className="col-span-1">
-                    <button
-                      onClick={() => openPatient(patient)}
-                      className="block w-14 h-14 rounded-lg overflow-hidden border border-gray-600 hover:border-green-400 transition-colors"
-                      title="View full analysis"
-                    >
-                      {patient.heatmapUrl || patient.imageUrl ? (
-                        <img
-                          src={patient.heatmapUrl || patient.imageUrl}
-                          alt={`${patient.name || "Patient"} scan`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                          <Scan className="h-5 w-5 text-gray-500" />
-                        </div>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Patient Information */}
-                  <div className="col-span-2">
-                    <div className="flex items-center">
-                      <div className={`w-3 h-3 rounded-full mr-3 ${getStatusColor(patient.status || 'pending')}`}></div>
-                      <div>
-                        <p className="text-white font-semibold">{patient.name}</p>
-                        <p className="text-gray-400 text-sm">ID: {patient.patientId}</p>
-                        <p className="text-gray-400 text-sm">{patient.age} yrs • {patient.gender}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Scan Details */}
-                  <div className="col-span-2">
-                    <div className="flex items-center text-sm">
-                      <Scan className="h-4 w-4 text-blue-400 mr-2" />
-                      <div>
-                        <p className="text-white">{patient.scanType}</p>
-                        <p className="text-gray-400">{formatDate(patient.date)}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* AI Findings */}
-                  <div className="col-span-2">
-                    <div className="bg-gray-700 rounded-lg px-3 py-2">
-                      <p className="text-white font-medium text-sm">
-                        {patient.aiFindings?.[0]?.name || "No significant findings"}
-                      </p>
-                      <p className="text-green-400 text-xs">
-                        {patient.aiFindings?.[0]
-                          ? `Confidence: ${patient.aiFindings[0].probability}%`
-                          : "No detected condition"}
-                      </p>
-                      {patient.aiFindings?.length > 1 && (
-                        <p className="text-gray-400 text-xs mt-0.5">
-                          +{patient.aiFindings.length - 1} more
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="col-span-3">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleSendToRadiologist(patient.id)}
-                        className="flex-1 bg-blue-500 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center"
-                      >
-                        <Send className="h-4 w-4 mr-1" />
-                        Send to Radiologist
-                      </button>
-                      <button
-                        onClick={() => openPatient(patient)}
-                        className="flex-1 bg-gray-600 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors"
-                      >
-                        View
-                      </button>
-                      <button className="bg-gray-600 text-white p-2 rounded-lg hover:bg-gray-700 transition-colors">
-                        <MessageCircle className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="px-6 py-12 text-center text-gray-400">
-                <p className="text-lg">No patients found recorded</p>
-              </div>
-            )}
+          <div className="records-table-wrap">
+            <table className="records-table"><thead><tr><th>Patient</th><th>Imaging study</th><th>AI assessment</th><th>Actions</th></tr></thead>
+              <tbody>{visiblePatients.map((patient) => {
+                const finding = patient.aiFindings?.[0];
+                const thumbnail = patient.heatmapUrl || patient.imageUrl;
+                return <tr key={patient.id}>
+                  <td><div className="patient-cell"><button className="record-thumbnail" onClick={() => openPatient(patient)} aria-label={`Open ${patient.name || "patient"} study`}>{thumbnail ? <img src={thumbnail} alt="" /> : <Activity size={18} />}</button><div><b>{patient.name || "Unnamed patient"}</b><span>{patient.patientId ? `ID ${patient.patientId}` : "ID unavailable"}</span><small>{patient.age || "—"} yrs · {patient.gender || "—"}</small></div></div></td>
+                  <td><b className="study-type">{patient.scanType || "Imaging study"}</b><span className="study-date">{formatDate(patient.date)}</span></td>
+                  <td><b className="ai-result">{finding?.name || "No significant findings"}</b><span className="ai-confidence">{finding?.probability != null ? `${finding.probability}% confidence` : "No confidence score"}</span>{patient.aiFindings?.length > 1 && <small className="more-findings">+{patient.aiFindings.length - 1} additional findings</small>}</td>
+                  <td><div className="record-actions"><button className="review-case" onClick={() => openPatient(patient)}>Open case</button><button className="send-review" onClick={() => referPatient(patient.id)} title="Request radiologist review"><Send size={15} /><span>Refer</span></button></div></td>
+                </tr>;
+              })}</tbody>
+            </table>
+            {loading && <div className="records-empty"><Activity size={25} /><b>Loading patient records</b><span>Connecting to the MedVision API…</span></div>}
+            {!loading && loadError && <div className="records-empty records-load-error"><b>Could not load patient records</b><span>{loadError}</span><button onClick={fetchPatients}>Retry connection</button></div>}
+            {!loading && !loadError && filteredPatients.length === 0 && <div className="records-empty"><ClipboardList size={30} /><b>{searchTerm || diseaseFilter !== "all" ? "No matching records" : "No patient records yet"}</b><span>{searchTerm || diseaseFilter !== "all" ? "Adjust the search or disease filter." : "Uploaded studies will appear here for clinical review."}</span></div>}
           </div>
-        </div>
+          {pageCount > 1 && <div className="records-pagination"><span>Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredPatients.length)} of {filteredPatients.length}</span><div><button onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1}>Previous</button>{Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => <button key={number} className={`page-number ${page === number ? "current" : ""}`} aria-current={page === number ? "page" : undefined} onClick={() => setPage(number)}>{number}</button>)}<button onClick={() => setPage((current) => Math.min(pageCount, current + 1))} disabled={page === pageCount}>Next</button></div></div>}
+          <footer className="records-panel-footer">Patient information is available to authorized care team members.</footer>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
