@@ -86,7 +86,13 @@ export default function DiagnosticResults() {
   const findings = patientData.aiFindings || [];
   const notableFindings = findings.filter((finding) => finding.name !== "No Significant Findings");
   const topFinding = notableFindings[0];
-  const reportNumber = patientData.reportNumber || `MV-${String(patientData.patientId || patientData.id || "REPORT").replace(/[^a-z0-9]/gi, "").slice(-10).toUpperCase()}-${formatDate(patientData.date).replace(/[^0-9]/g, "") || "00000000"}`;
+  const reportNumber = (() => {
+    const existingDigits = String(patientData.reportNumber || "").replace(/\D/g, "");
+    if (existingDigits) return existingDigits.slice(-3).padStart(3, "0");
+    const source = `${patientData.patientId || patientData.id || "report"}-${formatDate(patientData.date)}`;
+    const numericHash = Array.from(source).reduce((hash, character) => ((hash * 31) + character.charCodeAt(0)) % 900, 0);
+    return String(numericHash + 100);
+  })();
   const diseaseDescriptions = {
     Atelectasis: "A portion of the lung appears less aerated or partially collapsed. This can have several causes and needs interpretation with the full image and clinical context.",
     Cardiomegaly: "The heart silhouette appears larger than expected on this image. Positioning and technique can affect its apparent size, so clinical review is needed.",
@@ -199,8 +205,7 @@ export default function DiagnosticResults() {
         <section className="report-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="report-preview-title">
           <header className="report-preview-toolbar"><div><FileImage size={18} /><span>Report preview</span></div><button onClick={() => setShowReportPreview(false)} aria-label="Close report preview"><X size={20} /></button></header>
           <div className="report-preview-scroll"><article className="report-sheet">
-            <div className="report-sheet-brand"><b>MedVision AI</b><span>SERVICE PROVIDER</span></div>
-            <h2 id="report-preview-title">Diagnostic Report</h2>
+            <h2 id="report-preview-title" className="diagnostic-report-heading">Diagnostic Report</h2>
             <div className="report-meta-grid"><div><small>Service provider</small><b>MedVision AI</b></div><div><small>Report number</small><b>{reportNumber}</b></div><div><small>Patient</small><b>{patientData.name || "Not provided"}</b></div><div><small>Patient ID</small><b>{patientData.patientId || "Not provided"}</b></div><div><small>Gender</small><b>{patientData.gender || "Not provided"}</b></div><div><small>Age</small><b>{patientData.age ? `${patientData.age} years` : "Not provided"}</b></div><div><small>Scan type</small><b>{patientData.scanType || "Medical imaging"}</b></div><div><small>Date processed</small><b>{formatDate(patientData.date)}</b></div></div>
             <h3 className="report-section-title">I &nbsp; Scan images</h3>
             <div className="report-images-grid"><figure><div>{originalSrc ? <img src={originalSrc} alt="Original diagnostic scan" /> : <span>Original image unavailable</span>}</div><figcaption>Original image</figcaption></figure><figure><div>{patientData.heatmapUrl ? <img src={patientData.heatmapUrl} alt="AI heatmap overlay" /> : <span>AI heatmap unavailable</span>}</div><figcaption>AI heatmap</figcaption></figure></div>
