@@ -273,3 +273,5 @@ export async function downloadDiagnosticPdf(report) {
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
+
+

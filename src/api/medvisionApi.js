@@ -140,6 +140,14 @@ export const renderScanPreview = async (image) => {
   return response.previewDataUrl;
 };
 
+export const renderStoredScanPreview = async (imageUrl) => {
+  const imageResponse = await fetch(imageUrl);
+  if (!imageResponse.ok) throw new Error("Could not load the original DICOM image.");
+  const imageBlob = await imageResponse.blob();
+  const file = new File([imageBlob], "original.dcm", { type: "application/dicom" });
+  return renderScanPreview(file);
+};
+
 export const getPatients = async () => {
   const response = await request("/patients");
   const patients = Array.isArray(response) ? response : response.patients || [];

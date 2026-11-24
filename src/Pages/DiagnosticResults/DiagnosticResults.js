@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Activity, CheckCircle, Download, Eye, FileImage, Flame, History, Home, Image as ImageIcon, Maximize2, RotateCcw, ScanLine, Search, SlidersHorizontal, X, ZoomIn } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { getPatient } from "../../api/medvisionApi";
+import { getPatient, renderScanPreview, renderStoredScanPreview } from "../../api/medvisionApi";
 import { downloadDiagnosticPdf } from "./diagnosticReportPdf";
 import "./DiagnosticResults.css";
 import "./DiagnosticReportPreview.css";
@@ -19,6 +19,9 @@ export default function DiagnosticResults() {
   const [showAdjust, setShowAdjust] = useState(false);
   const [showReportPreview, setShowReportPreview] = useState(false);
   const [localImageUrl, setLocalImageUrl] = useState("");
+  const [decodedOriginalUrl, setDecodedOriginalUrl] = useState("");
+  const [originalImageLoading, setOriginalImageLoading] = useState(false);
+  const [originalImageError, setOriginalImageError] = useState("");
   const [reportError, setReportError] = useState("");
 
   useEffect(() => {
@@ -59,14 +62,43 @@ export default function DiagnosticResults() {
   }, [patientId, location.state, navigate]);
 
   useEffect(() => {
-    if (!patientData?.image) {
-      setLocalImageUrl("");
+    let cancelled = false;
+    let objectUrl = "";
+    setLocalImageUrl("");
+    setDecodedOriginalUrl("");
+    setOriginalImageError("");
+    const file = patientData?.image;
+    const imageUrl = patientData?.imageUrl;
+    if (!file && !imageUrl) {
+      setOriginalImageLoading(false);
       return undefined;
     }
-    const imageUrl = URL.createObjectURL(patientData.image);
-    setLocalImageUrl(imageUrl);
-    return () => URL.revokeObjectURL(imageUrl);
-  }, [patientData?.image]);
+    const extension = file?.name?.split(".").pop()?.toLowerCase();
+    const isDicom = patientData?.sourceFormat === "dicom" || patientData?.dicom || ["dcm", "dicom"].includes(extension) || /\.(dcm|dicom)(\?|$)/i.test(imageUrl || "");
+    if (isDicom) {
+      setOriginalImageLoading(true);
+      const previewPromise = file ? renderScanPreview(file) : renderStoredScanPreview(imageUrl);
+      previewPromise.then((previewUrl) => {
+        if (!cancelled) setDecodedOriginalUrl(previewUrl);
+      }).catch((error) => {
+        if (!cancelled) setOriginalImageError(error.message || "Could not render the original DICOM image.");
+      }).finally(() => {
+        if (!cancelled) setOriginalImageLoading(false);
+      });
+      return () => { cancelled = true; };
+    }
+    if (!file) {
+      setOriginalImageLoading(false);
+      return undefined;
+    }
+    objectUrl = URL.createObjectURL(file);
+    setLocalImageUrl(objectUrl);
+    setOriginalImageLoading(false);
+    return () => {
+      cancelled = true;
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [patientData?.image, patientData?.imageUrl, patientData?.sourceFormat, patientData?.dicom]);
 
   const formatDate = (value) => {
     if (!value) return "N/A";
@@ -79,7 +111,8 @@ export default function DiagnosticResults() {
 
   if (loading || !patientData) return <div className="diagnostic-loading">Loading results…</div>;
 
-  const originalSrc = localImageUrl || patientData.imageUrl || null;
+  const isDicomSource = patientData.sourceFormat === "dicom" || Boolean(patientData.dicom) || /\.(dcm|dicom)(\?|$)/i.test(patientData.image?.name || patientData.imageUrl || "");
+  const originalSrc = decodedOriginalUrl || localImageUrl || (isDicomSource ? null : patientData.imageUrl) || null;
   const hasHeatmap = Boolean(patientData.heatmapUrl);
   const showingHeatmap = activeView === "heatmap" && hasHeatmap;
   const activeSrc = showingHeatmap ? patientData.heatmapUrl : originalSrc;
@@ -160,7 +193,7 @@ export default function DiagnosticResults() {
           {showAdjust && <div className="image-adjust-panel"><label>Brightness <input type="range" min="50" max="150" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /><b>{brightness}%</b></label><label>Contrast <input type="range" min="50" max="180" value={contrast} onChange={(event) => setContrast(Number(event.target.value))} /><b>{contrast}%</b></label></div>}
           <div className="scan-stage">
             <div className="scan-image-frame">
-              {activeSrc ? <img src={activeSrc} alt={showingHeatmap ? "AI analysis heatmap overlay" : "Uploaded diagnostic scan"} className="scan-image" style={{ transform: `scale(${zoomLevel})`, filter: `brightness(${brightness}%) contrast(${contrast}%)` }} /> : <div className="scan-empty"><FileImage size={42} /><span>No image available for this study</span></div>}
+              {activeSrc ? <img src={activeSrc} alt={showingHeatmap ? "AI analysis heatmap overlay" : "Uploaded diagnostic scan"} className="scan-image" style={{ transform: `scale(${zoomLevel})`, filter: `brightness(${brightness}%) contrast(${contrast}%)` }} /> : <div className="scan-empty"><FileImage size={42} /><span>{originalImageLoading ? "Rendering original DICOM image…" : originalImageError || "No image available for this study"}</span></div>}
               <div className="image-caption"><ScanLine size={13} /> {showingHeatmap ? "AI ATTENTION MAP" : "ORIGINAL IMAGE"}</div>
             </div>
             <div className="scan-side-note"><span>STUDY</span><b>{patientData.patientId || "—"}</b><span>PROCESSED</span><b>{formatDate(patientData.date)}</b></div>
