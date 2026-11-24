@@ -88,24 +88,22 @@ function drawTable(commands, rows, y, maxY, fontSize = 9) {
 
 function makeFirstPage(report, images, firstRows, pageCount) {
   const c = [
-    drawText(230, 755, "Diagnostic Report", 22, true, "0.08 0.18 0.27"),
+    drawText(left, 755, "Diagnostic Report", 22, true, "0.08 0.18 0.27"),
     drawLine(left, 733, right, 733, "0.10 0.55 0.60"),
-    drawText(left, 712, "SERVICE PROVIDER", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 697, "MedVision AI", 9, true),
-    drawText(310, 712, "REPORT NUMBER", 8, true, "0.42 0.51 0.58"),
-    drawText(310, 697, report.reportNumber || "000", 9, true),
-    drawText(left, 675, "PATIENT", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 660, report.patientName || "Not provided", 9, true),
-    drawText(310, 675, "PATIENT ID", 8, true, "0.42 0.51 0.58"),
-    drawText(310, 660, report.patientId || "Not provided", 9, true),
-    drawText(left, 638, "GENDER", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 623, report.gender || "Not provided", 9, true),
-    drawText(310, 638, "AGE", 8, true, "0.42 0.51 0.58"),
-    drawText(310, 623, report.age ? `${report.age} years` : "Not provided", 9, true),
-    drawText(left, 601, "SCAN TYPE", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 586, report.scanType || "Medical imaging", 9, true),
-    drawText(310, 601, "DATE PROCESSED", 8, true, "0.42 0.51 0.58"),
-    drawText(310, 586, report.processedDate || "Not provided", 9, true),
+    drawText(left, 712, "REPORT NUMBER", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 697, report.reportNumber || "000", 9, true),
+    drawText(310, 712, "PATIENT", 8, true, "0.42 0.51 0.58"),
+    drawText(310, 697, report.patientName || "Not provided", 9, true),
+    drawText(left, 675, "PATIENT ID", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 660, report.patientId || "Not provided", 9, true),
+    drawText(310, 675, "GENDER", 8, true, "0.42 0.51 0.58"),
+    drawText(310, 660, report.gender || "Not provided", 9, true),
+    drawText(left, 638, "AGE", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 623, report.age ? `${report.age} years` : "Not provided", 9, true),
+    drawText(310, 638, "SCAN TYPE", 8, true, "0.42 0.51 0.58"),
+    drawText(310, 623, report.scanType || "Medical imaging", 9, true),
+    drawText(left, 601, "DATE PROCESSED", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 586, report.processedDate || "Not provided", 9, true),
     `0.08 0.25 0.35 rg ${left} 559 ${right - left} 21 re f`,
     drawText(left + 11, 566, "I  SCAN IMAGES", 9, true, "1 1 1"),
   ];
@@ -133,7 +131,7 @@ function makeFirstPage(report, images, firstRows, pageCount) {
 
 function makeValidationPage(rows, pageNumber, pageCount, continued = false) {
   const c = [
-    drawText(230, 755, "Diagnostic Report", 22, true, "0.08 0.18 0.27"),
+    drawText(left, 755, "Diagnostic Report", 22, true, "0.08 0.18 0.27"),
     drawLine(left, 720, right, 720, "0.10 0.55 0.60"),
     `0.08 0.25 0.35 rg ${left} 684 ${right - left} 21 re f`,
     drawText(left + 11, 691, `III  CLINICAL VALIDATION${continued ? " (CONTINUED)" : ""}`, 9, true, "1 1 1"),
@@ -147,7 +145,7 @@ function makeValidationPage(rows, pageNumber, pageCount, continued = false) {
       y -= 13;
     });
     y -= 9;
-    c.push(drawLine(left, y + 4, right, y + 4));
+    c.push(drawLine(left, y + 4, right, y + 4, "0.52 0.60 0.65"));
   });
   c.push(drawText(left, 61, "Automated observations require validation by a qualified clinician with the full clinical context.", 8, false, "0.44 0.52 0.58"));
   c.push(drawLine(left, 48, right, 48));
