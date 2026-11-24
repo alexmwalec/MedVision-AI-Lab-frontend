@@ -90,20 +90,22 @@ function makeFirstPage(report, images, firstRows, pageCount) {
   const c = [
     drawText(left, 755, "Diagnostic Report", 22, true, "0.08 0.18 0.27"),
     drawLine(left, 733, right, 733, "0.10 0.55 0.60"),
-    drawText(left, 712, "REPORT NUMBER", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 697, report.reportNumber || "000", 9, true),
-    drawText(310, 712, "PATIENT", 8, true, "0.42 0.51 0.58"),
-    drawText(310, 697, report.patientName || "Not provided", 9, true),
-    drawText(left, 675, "PATIENT ID", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 660, report.patientId || "Not provided", 9, true),
-    drawText(310, 675, "GENDER", 8, true, "0.42 0.51 0.58"),
-    drawText(310, 660, report.gender || "Not provided", 9, true),
-    drawText(left, 638, "AGE", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 623, report.age ? `${report.age} years` : "Not provided", 9, true),
-    drawText(310, 638, "SCAN TYPE", 8, true, "0.42 0.51 0.58"),
-    drawText(310, 623, report.scanType || "Medical imaging", 9, true),
-    drawText(left, 601, "DATE PROCESSED", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 586, report.processedDate || "Not provided", 9, true),
+    drawText(left, 712, "SERVICE PROVIDER", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 697, report.serviceProvider || "MedVision AI", 9, true),
+    drawText(310, 712, "REPORT NUMBER", 8, true, "0.42 0.51 0.58"),
+    drawText(310, 697, report.reportNumber || "000", 9, true),
+    drawText(left, 675, "PATIENT", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 660, report.patientName || "Not provided", 9, true),
+    drawText(310, 675, "PATIENT ID", 8, true, "0.42 0.51 0.58"),
+    drawText(310, 660, report.patientId || "Not provided", 9, true),
+    drawText(left, 638, "GENDER", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 623, report.gender || "Not provided", 9, true),
+    drawText(310, 638, "AGE", 8, true, "0.42 0.51 0.58"),
+    drawText(310, 623, report.age ? `${report.age} years` : "Not provided", 9, true),
+    drawText(left, 601, "SCAN TYPE", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 586, report.scanType || "Medical imaging", 9, true),
+    drawText(310, 601, "DATE PROCESSED", 8, true, "0.42 0.51 0.58"),
+    drawText(310, 586, report.processedDate || "Not provided", 9, true),
     `0.08 0.25 0.35 rg ${left} 559 ${right - left} 21 re f`,
     drawText(left + 11, 566, "I  SCAN IMAGES", 9, true, "1 1 1"),
   ];
@@ -255,7 +257,7 @@ export async function downloadDiagnosticPdf(report) {
       validationHeight = 0;
     }
     validationCurrent.push(row);
-    validationHeight += entryHeight;
+    validationHeight += entryHeight; 
   });
   if (validationCurrent.length) validationPages.push(validationCurrent);
   const pageCount = 1 + laterPages.length + validationPages.length;
