@@ -27,7 +27,7 @@ const request = async (path, options = {}) => {
   const data = await parseJson(response);
 
   if (!response.ok) {
-    throw new Error(data.message || data.error || "Backend request failed");
+    throw new Error(data.message || data.error || data.detail || "Backend request failed");
   }
 
   return data;
@@ -130,6 +130,14 @@ export const analyzeCxr = async (payload) => {
     },
     aiFindings: aiFindings
   });
+};
+
+export const renderScanPreview = async (image) => {
+  const body = new FormData();
+  body.append("xray", image);
+  const response = await request("/preview", { method: "POST", body });
+  if (!response.previewDataUrl) throw new Error("The preview service returned no image.");
+  return response.previewDataUrl;
 };
 
 export const getPatients = async () => {
