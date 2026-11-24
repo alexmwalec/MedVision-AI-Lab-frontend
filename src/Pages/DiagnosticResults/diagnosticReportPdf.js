@@ -88,22 +88,25 @@ function drawTable(commands, rows, y, maxY, fontSize = 9) {
 
 function makeFirstPage(report, images, firstRows, pageCount) {
   const c = [
-    drawText(left, 755, "MEDVISION AI", 11, true, "0.02 0.49 0.55"),
-    drawText(455, 755, "DIAGNOSTIC REPORT", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 723, "Diagnostic Findings Report", 22, true, "0.08 0.18 0.27"),
-    drawLine(left, 710, right, 710, "0.10 0.55 0.60"),
-    drawText(left, 687, "PATIENT", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 671, report.patientName || "Not provided", 10, true),
-    drawText(310, 687, "PATIENT ID", 8, true, "0.42 0.51 0.58"),
-    drawText(310, 671, report.patientId || "Not provided", 10, true),
-    drawText(left, 645, "SCAN TYPE", 8, true, "0.42 0.51 0.58"),
-    drawText(left, 629, report.scanType || "Medical imaging", 10, true),
-    drawText(310, 645, "DATE PROCESSED", 8, true, "0.42 0.51 0.58"),
-    drawText(310, 629, report.processedDate || "Not provided", 10, true),
-    `0.08 0.25 0.35 rg ${left} 596 ${right - left} 21 re f`,
-    drawText(left + 11, 603, "I  SCAN IMAGES", 9, true, "1 1 1"),
+    drawText(left, 755, "Diagnostic Report", 22, true, "0.08 0.18 0.27"),
+    drawText(left, 733, `Service provider: ${report.serviceProvider || "MedVision AI"}`, 10, true, "0.02 0.49 0.55"),
+    drawLine(left, 720, right, 720, "0.10 0.55 0.60"),
+    drawText(left, 699, "PATIENT", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 684, report.patientName || "Not provided", 9, true),
+    drawText(310, 699, "PATIENT ID", 8, true, "0.42 0.51 0.58"),
+    drawText(310, 684, report.patientId || "Not provided", 9, true),
+    drawText(left, 662, "GENDER", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 647, report.gender || "Not provided", 9, true),
+    drawText(310, 662, "AGE", 8, true, "0.42 0.51 0.58"),
+    drawText(310, 647, report.age ? `${report.age} years` : "Not provided", 9, true),
+    drawText(left, 625, "REPORT NUMBER", 8, true, "0.42 0.51 0.58"),
+    drawText(left, 610, report.reportNumber || "Not provided", 9, true),
+    drawText(310, 625, "DATE PROCESSED", 8, true, "0.42 0.51 0.58"),
+    drawText(310, 610, report.processedDate || "Not provided", 9, true),
+    `0.08 0.25 0.35 rg ${left} 583 ${right - left} 21 re f`,
+    drawText(left + 11, 590, "I  SCAN IMAGES", 9, true, "1 1 1"),
   ];
-  const imageY = 429;
+  const imageY = 416;
   const imageH = 145;
   const imageW = 250;
   c.push(`0.96 0.975 0.98 rg ${left} ${imageY} ${imageW} ${imageH} re f`);
@@ -114,14 +117,39 @@ function makeFirstPage(report, images, firstRows, pageCount) {
   c.push(drawLine(318, imageY + imageH, 318 + imageW, imageY + imageH));
   drawImage(c, images.original, "OriginalImage", left + 4, imageY + 4, imageW - 8, imageH - 8);
   drawImage(c, images.heatmap, "HeatmapImage", 322, imageY + 4, imageW - 8, imageH - 8);
-  c.push(drawText(left + 4, 412, "Original image", 9, true, "0.29 0.40 0.49"));
-  c.push(drawText(322, 412, "AI heatmap", 9, true, "0.29 0.40 0.49"));
-  c.push(`0.08 0.25 0.35 rg ${left} 384 ${right - left} 21 re f`);
-  c.push(drawText(left + 11, 391, "II  DISEASES DETECTED AND CONFIDENCE", 9, true, "1 1 1"));
-  drawTable(c, firstRows, 377, 61, 9);
+  c.push(drawText(left + 4, 399, "Original image", 9, true, "0.29 0.40 0.49"));
+  c.push(drawText(322, 399, "AI heatmap", 9, true, "0.29 0.40 0.49"));
+  c.push(`0.08 0.25 0.35 rg ${left} 371 ${right - left} 21 re f`);
+  c.push(drawText(left + 11, 378, "II  DISEASES DETECTED AND CONFIDENCE", 9, true, "1 1 1"));
+  drawTable(c, firstRows, 364, 61, 9);
   c.push(drawLine(left, 48, right, 48));
   c.push(drawText(left, 31, "AI findings support clinical review and do not replace professional diagnosis.", 7, false, "0.44 0.52 0.58"));
   c.push(drawText(529, 31, `1 / ${pageCount}`, 7, false, "0.44 0.52 0.58"));
+  return c.join("\n");
+}
+
+function makeValidationPage(rows, pageNumber, pageCount, continued = false) {
+  const c = [
+    drawText(left, 755, "Diagnostic Report", 22, true, "0.08 0.18 0.27"),
+    drawText(left, 733, "Service provider: MedVision AI", 10, true, "0.02 0.49 0.55"),
+    drawLine(left, 720, right, 720, "0.10 0.55 0.60"),
+    `0.08 0.25 0.35 rg ${left} 684 ${right - left} 21 re f`,
+    drawText(left + 11, 691, `III  CLINICAL VALIDATION${continued ? " (CONTINUED)" : ""}`, 9, true, "1 1 1"),
+  ];
+  let y = 660;
+  rows.forEach((row) => {
+    c.push(drawText(left + 4, y, row.disease, 11, true, "0.08 0.30 0.40"));
+    y -= 17;
+    wrap(row.description || "Clinical interpretation should be made by a qualified clinician.", 88).forEach((line) => {
+      c.push(drawText(left + 4, y, line, 9, false, "0.20 0.29 0.35"));
+      y -= 13;
+    });
+    y -= 9;
+    c.push(drawLine(left, y + 4, right, y + 4));
+  });
+  c.push(drawText(left, 61, "Automated observations require validation by a qualified clinician with the full clinical context.", 8, false, "0.44 0.52 0.58"));
+  c.push(drawLine(left, 48, right, 48));
+  c.push(drawText(529, 31, `${pageNumber} / ${pageCount}`, 7, false, "0.44 0.52 0.58"));
   return c.join("\n");
 }
 
@@ -215,9 +243,25 @@ export async function downloadDiagnosticPdf(report) {
     currentHeight += height;
   });
   if (current.length) laterPages.push(current);
-  const pageCount = 1 + laterPages.length;
+  const validationRows = report.findings?.length ? report.findings : [{ disease: "No significant findings detected", description: "No disease finding was flagged by the model. This automated result should still be interpreted with the complete study and clinical context." }];
+  const validationPages = [];
+  let validationCurrent = [];
+  let validationHeight = 0;
+  validationRows.forEach((row) => {
+    const entryHeight = 26 + wrap(row.description || "Clinical interpretation should be made by a qualified clinician.", 88).length * 13;
+    if (validationCurrent.length && validationHeight + entryHeight > 560) {
+      validationPages.push(validationCurrent);
+      validationCurrent = [];
+      validationHeight = 0;
+    }
+    validationCurrent.push(row);
+    validationHeight += entryHeight;
+  });
+  if (validationCurrent.length) validationPages.push(validationCurrent);
+  const pageCount = 1 + laterPages.length + validationPages.length;
   const contents = [makeFirstPage(report, { original, heatmap }, firstRows, pageCount)];
   laterPages.forEach((pageRows, index) => contents.push(makeLaterPage(pageRows, index + 2, pageCount)));
+  validationPages.forEach((pageRows, index) => contents.push(makeValidationPage(pageRows, 2 + laterPages.length + index, pageCount, index > 0)));
   const bytes = assemblePdf(contents, { OriginalImage: original, HeatmapImage: heatmap });
   const file = new Blob([bytes], { type: "application/pdf" });
   const url = URL.createObjectURL(file);

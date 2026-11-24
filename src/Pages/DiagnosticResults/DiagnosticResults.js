@@ -86,9 +86,28 @@ export default function DiagnosticResults() {
   const findings = patientData.aiFindings || [];
   const notableFindings = findings.filter((finding) => finding.name !== "No Significant Findings");
   const topFinding = notableFindings[0];
+  const reportNumber = patientData.reportNumber || `MV-${String(patientData.patientId || patientData.id || "REPORT").replace(/[^a-z0-9]/gi, "").slice(-10).toUpperCase()}-${formatDate(patientData.date).replace(/[^0-9]/g, "") || "00000000"}`;
+  const diseaseDescriptions = {
+    Atelectasis: "A portion of the lung appears less aerated or partially collapsed. This can have several causes and needs interpretation with the full image and clinical context.",
+    Cardiomegaly: "The heart silhouette appears larger than expected on this image. Positioning and technique can affect its apparent size, so clinical review is needed.",
+    Consolidation: "An area of lung appears denser than expected, which can occur when air spaces contain fluid or other material. This appearance is not specific to one cause.",
+    Edema: "The image may show increased fluid-related opacity in the lungs. A clinician should assess this alongside symptoms and other findings.",
+    Effusion: "The model marked a possible fluid collection in the space around a lung. A clinician should verify its presence and significance on the scan.",
+    "Pleural Effusion": "The model marked a possible fluid collection in the space around a lung. A clinician should verify its presence and significance on the scan.",
+    Pneumonia: "The image may show a lung opacity that can be seen with pneumonia, but imaging alone does not establish the cause. Clinical assessment is required.",
+    Pneumothorax: "The model marked a possible collection of air outside a lung. This finding requires prompt professional review to confirm and assess.",
+    Nodule: "A small, localized opacity may be present in the lung. Many causes are possible, and further assessment may be needed to characterize it.",
+    Mass: "A larger localized opacity may be present in the lung. This image finding has multiple possible causes and requires clinician assessment.",
+    Fibrosis: "The model marked a possible pattern of lung scarring. The finding should be confirmed and interpreted with prior imaging and clinical history.",
+    "Pleural Thickening": "The lining around the lung may appear thickened. This appearance can have different causes and should be reviewed by a clinician.",
+    "Lung Opacity": "An area of the lung appears denser than expected. Opacity is a general imaging description, not a diagnosis, and has several possible causes.",
+    "No Finding": "The model did not identify a target abnormality. This does not rule out disease; a qualified clinician should review the complete study."
+  };
+  const clinicalDescription = (finding) => finding.description || diseaseDescriptions[finding.name] || `The AI model marked ${finding.name} as a possible imaging finding. This label describes a model observation, not a confirmed diagnosis; a qualified clinician should interpret it alongside the scan and the patient's clinical history.`;
   const reportFindings = notableFindings.map((finding) => ({
     disease: finding.name,
-    confidence: finding.probability == null ? "N/A" : `${finding.probability}%`
+    confidence: finding.probability == null ? "N/A" : `${finding.probability}%`,
+    description: clinicalDescription(finding)
   }));
   const downloadReport = async () => {
     setReportError("");
@@ -96,6 +115,10 @@ export default function DiagnosticResults() {
       await downloadDiagnosticPdf({
         patientName: patientData.name,
         patientId: patientData.patientId,
+        gender: patientData.gender,
+        age: patientData.age,
+        reportNumber,
+        serviceProvider: "MedVision AI",
         scanType: patientData.scanType || "Chest X-ray",
         processedDate: formatDate(patientData.date),
         originalImage: originalSrc,
@@ -176,13 +199,15 @@ export default function DiagnosticResults() {
         <section className="report-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="report-preview-title">
           <header className="report-preview-toolbar"><div><FileImage size={18} /><span>Report preview</span></div><button onClick={() => setShowReportPreview(false)} aria-label="Close report preview"><X size={20} /></button></header>
           <div className="report-preview-scroll"><article className="report-sheet">
-            <div className="report-sheet-brand"><b>MedVision AI</b><span>DIAGNOSTIC REPORT</span></div>
-            <h2 id="report-preview-title">Diagnostic Findings Report</h2>
-            <div className="report-meta-grid"><div><small>Patient</small><b>{patientData.name || "Not provided"}</b></div><div><small>Patient ID</small><b>{patientData.patientId || "Not provided"}</b></div><div><small>Scan type</small><b>{patientData.scanType || "Medical imaging"}</b></div><div><small>Date processed</small><b>{formatDate(patientData.date)}</b></div></div>
+            <div className="report-sheet-brand"><b>MedVision AI</b><span>SERVICE PROVIDER</span></div>
+            <h2 id="report-preview-title">Diagnostic Report</h2>
+            <div className="report-meta-grid"><div><small>Service provider</small><b>MedVision AI</b></div><div><small>Report number</small><b>{reportNumber}</b></div><div><small>Patient</small><b>{patientData.name || "Not provided"}</b></div><div><small>Patient ID</small><b>{patientData.patientId || "Not provided"}</b></div><div><small>Gender</small><b>{patientData.gender || "Not provided"}</b></div><div><small>Age</small><b>{patientData.age ? `${patientData.age} years` : "Not provided"}</b></div><div><small>Scan type</small><b>{patientData.scanType || "Medical imaging"}</b></div><div><small>Date processed</small><b>{formatDate(patientData.date)}</b></div></div>
             <h3 className="report-section-title">I &nbsp; Scan images</h3>
             <div className="report-images-grid"><figure><div>{originalSrc ? <img src={originalSrc} alt="Original diagnostic scan" /> : <span>Original image unavailable</span>}</div><figcaption>Original image</figcaption></figure><figure><div>{patientData.heatmapUrl ? <img src={patientData.heatmapUrl} alt="AI heatmap overlay" /> : <span>AI heatmap unavailable</span>}</div><figcaption>AI heatmap</figcaption></figure></div>
             <h3 className="report-section-title">II &nbsp; Diseases detected and confidence</h3>
             <table className="report-findings-table"><thead><tr><th>Disease</th><th>Confidence score</th></tr></thead><tbody>{reportFindings.length ? reportFindings.map((row, index) => <tr key={`${row.disease}-${index}`}><td>{row.disease}</td><td>{row.confidence}</td></tr>) : <tr><td>No significant findings detected</td><td>N/A</td></tr>}</tbody></table>
+            <h3 className="report-section-title">III &nbsp; Clinical Validation</h3>
+            <div className="report-validation-list">{reportFindings.length ? reportFindings.map((row, index) => <section key={`validation-${index}`}><h4>{row.disease}</h4><p>{row.description}</p></section>) : <p>No disease findings were identified for clinical validation.</p>}</div>
             <p className="report-disclaimer">AI-generated findings are intended to support qualified clinical review.</p>
           </article></div>
           <footer className="report-preview-footer">{reportError && <span className="report-error">{reportError}</span>}<button className="report-download-button" onClick={downloadReport}><Download size={16} /> Download PDF</button></footer>
